@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		6F6F267F2D1550F50062E9DF /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F6F267E2D1550F50062E9DF /* HealthKit.framework */; };
+		6F6F26812D1551010062E9DF /* HealthKitUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F6F26802D1551010062E9DF /* HealthKitUI.framework */; platformFilters = (ios, xros, ); };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		6FA58A282D14F2E2000EB4FF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,6 +29,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		6F6F267E2D1550F50062E9DF /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.2.sdk/System/Library/Frameworks/HealthKit.framework; sourceTree = DEVELOPER_DIR; };
+		6F6F26802D1551010062E9DF /* HealthKitUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKitUI.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.2.sdk/System/Library/Frameworks/HealthKitUI.framework; sourceTree = DEVELOPER_DIR; };
 		6FA58A162D14F2E1000EB4FF /* PDS_App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PDS_App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6FA58A272D14F2E2000EB4FF /* PDS_AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PDS_AppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6FA58A312D14F2E2000EB4FF /* PDS_AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PDS_AppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -52,6 +59,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6F6F267F2D1550F50062E9DF /* HealthKit.framework in Frameworks */,
+				6F6F26812D1551010062E9DF /* HealthKitUI.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -72,12 +81,22 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		6F6F267D2D1550F50062E9DF /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				6F6F26802D1551010062E9DF /* HealthKitUI.framework */,
+				6F6F267E2D1550F50062E9DF /* HealthKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		6FA58A0D2D14F2E1000EB4FF = {
 			isa = PBXGroup;
 			children = (
 				6FA58A182D14F2E1000EB4FF /* PDS_App */,
 				6FA58A2A2D14F2E2000EB4FF /* PDS_AppTests */,
 				6FA58A342D14F2E2000EB4FF /* PDS_AppUITests */,
+				6F6F267D2D1550F50062E9DF /* Frameworks */,
 				6FA58A172D14F2E1000EB4FF /* Products */,
 			);
 			sourceTree = "<group>";
@@ -195,6 +214,8 @@
 			);
 			mainGroup = 6FA58A0D2D14F2E1000EB4FF;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6FA58A172D14F2E1000EB4FF /* Products */;
 			projectDirPath = "";
