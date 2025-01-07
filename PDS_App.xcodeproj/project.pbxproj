@@ -7,8 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6F39EC6E2D2CC4A800044D92 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 6F39EC6D2D2CC4A800044D92 /* FirebaseAnalytics */; };
+		6F39EC702D2CCF5200044D92 /* FirebaseAnalyticsOnDeviceConversion in Frameworks */ = {isa = PBXBuildFile; productRef = 6F39EC6F2D2CCF5200044D92 /* FirebaseAnalyticsOnDeviceConversion */; };
+		6F39EC722D2CCF5200044D92 /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 6F39EC712D2CCF5200044D92 /* FirebaseAnalyticsWithoutAdIdSupport */; };
+		6F39EC742D2CCF5200044D92 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = 6F39EC732D2CCF5200044D92 /* FirebaseAppCheck */; };
+		6F39EC762D2CCF5200044D92 /* FirebaseAppDistribution-Beta in Frameworks */ = {isa = PBXBuildFile; productRef = 6F39EC752D2CCF5200044D92 /* FirebaseAppDistribution-Beta */; };
+		6F39EC8C2D2CEF7800044D92 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 6F39EC8B2D2CEF7800044D92 /* FirebaseFirestore */; };
 		6F6F267F2D1550F50062E9DF /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F6F267E2D1550F50062E9DF /* HealthKit.framework */; };
 		6F6F26812D1551010062E9DF /* HealthKitUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F6F26802D1551010062E9DF /* HealthKitUI.framework */; platformFilters = (ios, xros, ); };
+		6F93C9F52D2BA00300C8E789 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F93C9F42D2BA00300C8E789 /* CloudKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -31,6 +38,7 @@
 /* Begin PBXFileReference section */
 		6F6F267E2D1550F50062E9DF /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.2.sdk/System/Library/Frameworks/HealthKit.framework; sourceTree = DEVELOPER_DIR; };
 		6F6F26802D1551010062E9DF /* HealthKitUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKitUI.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.2.sdk/System/Library/Frameworks/HealthKitUI.framework; sourceTree = DEVELOPER_DIR; };
+		6F93C9F42D2BA00300C8E789 /* CloudKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CloudKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.2.sdk/System/Library/Frameworks/CloudKit.framework; sourceTree = DEVELOPER_DIR; };
 		6FA58A162D14F2E1000EB4FF /* PDS_App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PDS_App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6FA58A272D14F2E2000EB4FF /* PDS_AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PDS_AppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6FA58A312D14F2E2000EB4FF /* PDS_AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PDS_AppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -59,8 +67,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6F93C9F52D2BA00300C8E789 /* CloudKit.framework in Frameworks */,
+				6F39EC722D2CCF5200044D92 /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */,
 				6F6F267F2D1550F50062E9DF /* HealthKit.framework in Frameworks */,
+				6F39EC702D2CCF5200044D92 /* FirebaseAnalyticsOnDeviceConversion in Frameworks */,
+				6F39EC742D2CCF5200044D92 /* FirebaseAppCheck in Frameworks */,
+				6F39EC8C2D2CEF7800044D92 /* FirebaseFirestore in Frameworks */,
+				6F39EC6E2D2CC4A800044D92 /* FirebaseAnalytics in Frameworks */,
 				6F6F26812D1551010062E9DF /* HealthKitUI.framework in Frameworks */,
+				6F39EC762D2CCF5200044D92 /* FirebaseAppDistribution-Beta in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -84,6 +99,7 @@
 		6F6F267D2D1550F50062E9DF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				6F93C9F42D2BA00300C8E789 /* CloudKit.framework */,
 				6F6F26802D1551010062E9DF /* HealthKitUI.framework */,
 				6F6F267E2D1550F50062E9DF /* HealthKit.framework */,
 			);
@@ -131,6 +147,12 @@
 			);
 			name = PDS_App;
 			packageProductDependencies = (
+				6F39EC6D2D2CC4A800044D92 /* FirebaseAnalytics */,
+				6F39EC6F2D2CCF5200044D92 /* FirebaseAnalyticsOnDeviceConversion */,
+				6F39EC712D2CCF5200044D92 /* FirebaseAnalyticsWithoutAdIdSupport */,
+				6F39EC732D2CCF5200044D92 /* FirebaseAppCheck */,
+				6F39EC752D2CCF5200044D92 /* FirebaseAppDistribution-Beta */,
+				6F39EC8B2D2CEF7800044D92 /* FirebaseFirestore */,
 			);
 			productName = PDS_App;
 			productReference = 6FA58A162D14F2E1000EB4FF /* PDS_App.app */;
@@ -215,6 +237,7 @@
 			mainGroup = 6FA58A0D2D14F2E1000EB4FF;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				6F39EC6C2D2CC4A800044D92 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6FA58A172D14F2E1000EB4FF /* Products */;
@@ -417,6 +440,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "PDS-App-Info.plist";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -456,6 +480,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "PDS-App-Info.plist";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -612,6 +637,50 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		6F39EC6C2D2CC4A800044D92 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.6.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		6F39EC6D2D2CC4A800044D92 /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6F39EC6C2D2CC4A800044D92 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
+		6F39EC6F2D2CCF5200044D92 /* FirebaseAnalyticsOnDeviceConversion */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6F39EC6C2D2CC4A800044D92 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalyticsOnDeviceConversion;
+		};
+		6F39EC712D2CCF5200044D92 /* FirebaseAnalyticsWithoutAdIdSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6F39EC6C2D2CC4A800044D92 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalyticsWithoutAdIdSupport;
+		};
+		6F39EC732D2CCF5200044D92 /* FirebaseAppCheck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6F39EC6C2D2CC4A800044D92 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAppCheck;
+		};
+		6F39EC752D2CCF5200044D92 /* FirebaseAppDistribution-Beta */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6F39EC6C2D2CC4A800044D92 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = "FirebaseAppDistribution-Beta";
+		};
+		6F39EC8B2D2CEF7800044D92 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6F39EC6C2D2CC4A800044D92 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 6FA58A0E2D14F2E1000EB4FF /* Project object */;
 }
