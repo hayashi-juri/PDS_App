@@ -12,6 +12,24 @@ import Foundation
 class FirestoreManager {
     private let db = Firestore.firestore()
 
+    func saveHealthDataSettings(settings: [[String: Any]], completion: @escaping (Result<Void, Error>) -> Void) {
+            let db = Firestore.firestore()
+            let batch = db.batch()
+
+            for setting in settings {
+                let docRef = db.collection("healthDataSettings").document(UUID().uuidString)
+                batch.setData(setting, forDocument: docRef)
+            }
+
+            batch.commit { error in
+                if let error = error {
+                    completion(.failure(error))
+                } else {
+                    completion(.success(()))
+                }
+            }
+        }
+    
     /// Firestoreにテストデータを保存する関数
     func saveTestData(completion: @escaping (Result<Void, Error>) -> Void) {
         let testData: [String: Any] = [
