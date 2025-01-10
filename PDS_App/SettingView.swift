@@ -21,8 +21,8 @@ struct SettingView: View {
                 // グループ選択
                 Section(header: Text("共有グループ")) {
                     Picker("グループを選択", selection: $groupSelection) {
-                        Text("GroupA").tag("GroupA")
-                        Text("GroupB").tag("GroupB")
+                        Text("Family").tag("Family")
+                        Text("Friends").tag("Friends")
                         Text("Public").tag("Public")
                     }
                     .pickerStyle(SegmentedPickerStyle())
@@ -62,6 +62,7 @@ struct SettingView: View {
             .navigationBarItems(trailing: Button("保存") {
                 saveSettings()
             })
+
             .onAppear {
                 fetchHealthData()
             }
@@ -75,21 +76,20 @@ struct SettingView: View {
     }
 
     private func saveSettings() {
-        let settings = [
-            "group": groupSelection,
-            "isAnonymous": isAnonymous,
-            "deletionDate": ISO8601DateFormatter().string(from: deletionDate)
-        ] as [String: Any]
+            let settings = [
+                "isAnonymous": isAnonymous,
+                "deletionDate": ISO8601DateFormatter().string(from: deletionDate)
+            ] as [String: Any]
 
-        firestoreManager.saveSettings(settings: settings) { result in
-            switch result {
-            case .success:
-                print("設定が保存されました")
-            case .failure(let error):
-                print("設定の保存に失敗しました: \(error.localizedDescription)")
+            firestoreManager.saveGroupSettings(groupID: groupSelection, settings: settings) { result in
+                switch result {
+                case .success:
+                    print("設定が保存されました")
+                case .failure(let error):
+                    print("設定の保存に失敗しました: \(error.localizedDescription)")
+                }
             }
         }
-    }
 }
 
 private let dateFormatter: DateFormatter = {

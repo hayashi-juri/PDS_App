@@ -15,9 +15,9 @@ class FirestoreManager {
         return firestore
     }
 
-    /// Firestoreに設定を保存するメソッド
-        func saveSettings(settings: [String: Any], completion: @escaping (Result<Void, Error>) -> Void) {
-            let docRef = db.collection("settings").document("sharedSettings") // 保存先のドキュメントを指定
+    /// グループ設定を保存
+        func saveGroupSettings(groupID: String, settings: [String: Any], completion: @escaping (Result<Void, Error>) -> Void) {
+            let docRef = db.collection("settings").document(groupID) // グループIDをドキュメントIDとして使用
             docRef.setData(settings) { error in
                 if let error = error {
                     completion(.failure(error))
@@ -26,6 +26,21 @@ class FirestoreManager {
                 }
             }
         }
+
+    /// グループ設定を取得
+        func fetchGroupSettings(groupID: String, completion: @escaping (Result<[String: Any], Error>) -> Void) {
+            let docRef = db.collection("settings").document(groupID)
+            docRef.getDocument { document, error in
+                if let error = error {
+                    completion(.failure(error))
+                } else if let document = document, document.exists {
+                    completion(.success(document.data() ?? [:]))
+                } else {
+                    completion(.failure(NSError(domain: "", code: 404, userInfo: [NSLocalizedDescriptionKey: "Document not found"])))
+                }
+            }
+        }
+    
     /// FirestoreにHealthKitのデータを保存する
     func saveHealthData(data: [[String: Any]], completion: @escaping (Result<Void, Error>) -> Void) {
             let batch = db.batch()

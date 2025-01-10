@@ -4,61 +4,58 @@
 //
 //  Created by Juri Hayashi on 2024/12/20.
 //
-
 import SwiftUI
 
 struct ContentView: View {
     let firestoreManager: FirestoreManager // Firestore管理を受け取る
     @StateObject var healthKitManager: HealthKitManager // HealthKit管理
+    @State private var isHealthKitAuthorized: Bool = false // 認証状態のトラッキング
 
     var body: some View {
-        if healthKitManager.isAuthorized {
-            TabView {
-                VisualizeView() // データのグラフ化タブ
-                    .tabItem {
-                        Image(systemName: "chart.bar")
-                        Text("データ")
-                    }
+        Group {
+            if isHealthKitAuthorized {
+                TabView {
+                    VisualizeView() // データのグラフ化タブ
+                        .tabItem {
+                            Image(systemName: "chart.bar")
+                            Text("データ")
+                        }
 
-                DataShareView() // データシェアタブ
-                    .tabItem {
-                        Image(systemName: "person.2.fill")
-                        Text("シェア")
-                    }
+                    DataShareView() // データシェアタブ
+                        .tabItem {
+                            Image(systemName: "person.2.fill")
+                            Text("シェア")
+                        }
 
-                SettingView(firestoreManager: firestoreManager) // 設定タブ
-                    .tabItem {
-                        Image(systemName: "gear")
-                        Text("設定")
-                    }
+                    SettingView(firestoreManager: firestoreManager) // 設定タブ
+                        .tabItem {
+                            Image(systemName: "gear")
+                            Text("設定")
+                        }
+                }
+            } else {
+                // 認証中のローディング画面を表示
+                VStack {
+                    ProgressView("HealthKitの認証中...")
+                        .progressViewStyle(CircularProgressViewStyle())
+                        .padding()
+                }
+                .onAppear(perform: requestHealthKitAuthorization)
             }
         }
+    }
 
-        else {
-            VStack(spacing: 20) {
-                Text("HealthKitの認証が必要です")
-                    .font(.headline)
-
-                Button(action: {
-                    healthKitManager.requestAuthorization { success, error in
-                        if success {
-                            print("HealthKit認証が成功しました")
-                        } else {
-                            print("HealthKit認証に失敗しました: \(error?.localizedDescription ?? "Unknown error")")
-                        }
-                    }
-                }) {
-                    Text("認証をリクエスト")
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
+    /// HealthKitの認証をリクエスト
+    private func requestHealthKitAuthorization() {
+        healthKitManager.requestAuthorization { success, error in
+            DispatchQueue.main.async {
+                if success {
+                    isHealthKitAuthorized = true
+                    print("HealthKit認証が成功しました")
+                } else {
+                    print("HealthKit認証に失敗しました: \(error?.localizedDescription ?? "Unknown error")")
                 }
             }
-            .padding()
-            .navigationTitle("認証が必要です")
         }
     }
 }
-
