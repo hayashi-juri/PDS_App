@@ -5,23 +5,20 @@
 //  Created by Juri Hayashi on 2025/01/07.
 //
 
-
 import FirebaseFirestore
-import Foundation
 
 class FirestoreManager {
-    private let db = Firestore.firestore()
+    private var db: Firestore {
+        guard let firestore = Firestore.firestore() as Firestore? else {
+            fatalError("Firestore is not properly initialized")
+        }
+        return firestore
+    }
 
-    func saveHealthDataSettings(settings: [[String: Any]], completion: @escaping (Result<Void, Error>) -> Void) {
-            let db = Firestore.firestore()
-            let batch = db.batch()
-
-            for setting in settings {
-                let docRef = db.collection("healthDataSettings").document(UUID().uuidString)
-                batch.setData(setting, forDocument: docRef)
-            }
-
-            batch.commit { error in
+    /// Firestoreに設定を保存するメソッド
+        func saveSettings(settings: [String: Any], completion: @escaping (Result<Void, Error>) -> Void) {
+            let docRef = db.collection("settings").document("sharedSettings") // 保存先のドキュメントを指定
+            docRef.setData(settings) { error in
                 if let error = error {
                     completion(.failure(error))
                 } else {
@@ -29,45 +26,36 @@ class FirestoreManager {
                 }
             }
         }
-    
-    /// Firestoreにテストデータを保存する関数
-    func saveTestData(completion: @escaping (Result<Void, Error>) -> Void) {
-        let testData: [String: Any] = [
-            "name": "Test Agreement",
-            "context": [
-                "agreementInitiator": "User123",
-                "agreementResponder": "TestService",
-                "expirationTime": "2025-12-31T23:59:59Z"
-            ],
-            "terms": [
-                "serviceDescriptionTerm": [
-                    "dataType": "HealthKit",
-                    "sharingScope": [
-                        "groupID": "GroupA",
-                        "anonymity": "Anonymous"
-                    ]
-                ]
-            ]
-        ]
 
-        db.collection("test_agreements").addDocument(data: testData) { error in
+    /// Firestoreからヘルスデータを取得するメソッド
+    func fetchHealthData(completion: @escaping ([HealthDataItem]) -> Void) {
+        db.collection("healthData").getDocuments { snapshot, error in
             if let error = error {
-                completion(.failure(error))
-            } else {
-                completion(.success(()))
+                print("Error fetching data: \(error.localizedDescription)")
+                completion([])
+                return
             }
+
+            let data = snapshot?.documents.compactMap { document -> HealthDataItem? in
+                guard
+                    let type = document.data()["type"] as? String,
+                    let value = document.data()["value"] as? Double,
+                    let date = (document.data()["date"] as? Timestamp)?.dateValue()
+                else {
+                    return nil
+                }
+
+                return HealthDataItem(id: document.documentID, type: type, value: value, date: date)
+            } ?? []
+
+            completion(data)
         }
     }
+}
 
-    /// Firestoreからテストデータを取得する関数
-    func fetchTestData(completion: @escaping (Result<[[String: Any]], Error>) -> Void) {
-        db.collection("test_agreements").getDocuments { (snapshot, error) in
-            if let error = error {
-                completion(.failure(error))
-            } else if let snapshot = snapshot {
-                let documents = snapshot.documents.map { $0.data() }
-                completion(.success(documents))
-            }
-        }
-    }
+struct HealthDataItem: Identifiable {
+    let id: String
+    let type: String
+    let value: Double
+    let date: Date
 }

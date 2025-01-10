@@ -6,93 +6,56 @@
 //
 
 import SwiftUI
-import FirebaseFirestore
 
 struct ContentView: View {
-    @StateObject var healthKitManager = HealthKitManager()
-    private let firestoreManager = FirestoreManager()
+    let firestoreManager: FirestoreManager // Firestore管理を受け取る
+    @StateObject var healthKitManager: HealthKitManager // HealthKit管理
 
     var body: some View {
-        VStack {
-            Text("Firestore Test")
-                .padding()
-
-            // "Save Test Data" ボタン
-            Button(action: {
-                handleFirestoreOperation {
-                    saveTestData()
-                }
-            }) {
-                Text("Save Test Data")
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-            }
-
-            // "Fetch Test Data" ボタン
-            Button(action: {
-                handleFirestoreOperation {
-                    fetchTestData()
-                }
-            }) {
-                Text("Fetch Test Data")
-                    .padding()
-                    .background(Color.green)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-            }
-        }
-        .onAppear {
-            healthKitManager.requestAuthorization { success, error in
-                if success {
-                    print("HealthKit authorization completed successfully")
-                } else {
-                    print("HealthKit authorization failed: \(error?.localizedDescription ?? "Unknown error")")
-                }
-            }
-        }
-    }
-
-    /// Firestoreの操作を実行する前にHealthKit認証を確認
-    private func handleFirestoreOperation(_ operation: @escaping () -> Void) {
         if healthKitManager.isAuthorized {
-            operation()
+            TabView {
+                VisualizeView() // データのグラフ化タブ
+                    .tabItem {
+                        Image(systemName: "chart.bar")
+                        Text("データ")
+                    }
+
+                DataShareView() // データシェアタブ
+                    .tabItem {
+                        Image(systemName: "person.2.fill")
+                        Text("シェア")
+                    }
+
+                SettingView(firestoreManager: firestoreManager) // 設定タブ
+                    .tabItem {
+                        Image(systemName: "gear")
+                        Text("設定")
+                    }
+            }
         } else {
-            print("HealthKit is not authorized. Requesting authorization...")
-            healthKitManager.requestAuthorization { success, _ in
-                if success {
-                    operation()
-                } else {
-                    print("Operation aborted because HealthKit authorization failed.")
+            VStack(spacing: 20) {
+                Text("HealthKitの認証が必要です")
+                    .font(.headline)
+
+                Button(action: {
+                    healthKitManager.requestAuthorization { success, error in
+                        if success {
+                            print("HealthKit認証が成功しました")
+                        } else {
+                            print("HealthKit認証に失敗しました: \(error?.localizedDescription ?? "Unknown error")")
+                        }
+                    }
+                }) {
+                    Text("認証をリクエスト")
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
                 }
             }
-        }
-    }
-
-    /// FirestoreManagerを使用してデータを保存
-    private func saveTestData() {
-        firestoreManager.saveTestData { result in
-            switch result {
-            case .success:
-                print("Data successfully saved to Firestore!")
-            case .failure(let error):
-                print("Error saving data: \(error.localizedDescription)")
-            }
-        }
-    }
-
-    /// FirestoreManagerを使用してデータを取得
-    private func fetchTestData() {
-        firestoreManager.fetchTestData { result in
-            switch result {
-            case .success(let documents):
-                for document in documents {
-                    print("Fetched Data: \(document)")
-                }
-            case .failure(let error):
-                print("Error fetching data: \(error.localizedDescription)")
-            }
+            .padding()
+            .navigationTitle("認証が必要です")
         }
     }
 }

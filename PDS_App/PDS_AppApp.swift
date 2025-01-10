@@ -13,8 +13,10 @@ import Firebase
 class AppDelegate: NSObject, UIApplicationDelegate {
   func application(_ application: UIApplication,
                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+    print("Configuring Firebase...")
     FirebaseApp.configure()
-    let db = Firestore.firestore()
+    //let db = Firestore.firestore()
+    print("Firebase configured successfully")
     return true
   }
 }
@@ -23,10 +25,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 struct PDS_AppApp: App {
     // register app delegate for Firebase setup
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    private let firestoreManager = FirestoreManager() // Firestoreの操作を管理
+    private let healthKitManager = HealthKitManager() // HealthKitの操作を管理
+
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(firestoreManager: firestoreManager, healthKitManager: healthKitManager)
         }
     }
 }
