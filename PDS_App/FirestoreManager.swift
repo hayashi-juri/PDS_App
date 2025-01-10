@@ -26,6 +26,24 @@ class FirestoreManager {
                 }
             }
         }
+    /// FirestoreにHealthKitのデータを保存する
+    func saveHealthData(data: [[String: Any]], completion: @escaping (Result<Void, Error>) -> Void) {
+            let batch = db.batch()
+            let collectionRef = db.collection("healthData")
+
+            for item in data {
+                let docRef = collectionRef.document()
+                batch.setData(item, forDocument: docRef)
+            }
+
+            batch.commit { error in
+                if let error = error {
+                    completion(.failure(error))
+                } else {
+                    completion(.success(()))
+                }
+            }
+        }
 
     /// Firestoreからヘルスデータを取得するメソッド
     func fetchHealthData(completion: @escaping ([HealthDataItem]) -> Void) {

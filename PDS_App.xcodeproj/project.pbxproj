@@ -44,9 +44,30 @@
 		6FA58A312D14F2E2000EB4FF /* PDS_AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PDS_AppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		6FC083652D310CA1001A59F5 /* Exceptions for "PDS_App" folder in "PDS_AppTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"GoogleService-Info.plist",
+			);
+			target = 6FA58A262D14F2E2000EB4FF /* PDS_AppTests */;
+		};
+		6FC083662D310CA1001A59F5 /* Exceptions for "PDS_App" folder in "PDS_AppUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"GoogleService-Info.plist",
+			);
+			target = 6FA58A302D14F2E2000EB4FF /* PDS_AppUITests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		6FA58A182D14F2E1000EB4FF /* PDS_App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6FC083652D310CA1001A59F5 /* Exceptions for "PDS_App" folder in "PDS_AppTests" target */,
+				6FC083662D310CA1001A59F5 /* Exceptions for "PDS_App" folder in "PDS_AppUITests" target */,
+			);
 			path = PDS_App;
 			sourceTree = "<group>";
 		};

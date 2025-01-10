@@ -13,10 +13,8 @@ import Firebase
 class AppDelegate: NSObject, UIApplicationDelegate {
   func application(_ application: UIApplication,
                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-    print("Configuring Firebase...")
     FirebaseApp.configure()
     //let db = Firestore.firestore()
-    print("Firebase configured successfully")
     return true
   }
 }

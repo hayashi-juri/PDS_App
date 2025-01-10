@@ -32,7 +32,9 @@ struct ContentView: View {
                         Text("設定")
                     }
             }
-        } else {
+        }
+
+        else {
             VStack(spacing: 20) {
                 Text("HealthKitの認証が必要です")
                     .font(.headline)
