@@ -1,9 +1,15 @@
-//
-//  ContentView.swift
-//  PDS_App
-//
-//  Created by Juri Hayashi on 2024/12/20.
-//
+/*
+ ContentView.swift
+ PDS_App
+ Created by Juri Hayashi on 2024/12/20.
+
+ タブを提供します：
+
+ データの視覚化
+ データの共有
+ 設定管理
+ */
+
 import SwiftUI
 
 struct ContentView: View {
@@ -20,13 +26,13 @@ struct ContentView: View {
                             Image(systemName: "chart.bar")
                             Text("データ")
                         }
-
+                    
                     DataShareView() // データシェアタブ
                         .tabItem {
                             Image(systemName: "person.2.fill")
                             Text("シェア")
                         }
-
+                    
                     SettingView(firestoreManager: firestoreManager) // 設定タブ
                         .tabItem {
                             Image(systemName: "gear")
@@ -39,21 +45,25 @@ struct ContentView: View {
                     ProgressView("HealthKitの認証中...")
                         .progressViewStyle(CircularProgressViewStyle())
                         .padding()
+                    // 認証後のユーザーID表示
+                    if let userID = healthKitManager.userID {
+                        Text("User ID: \(userID)")
+                            .font(.headline)
+                            .padding()
+                    }
+                        .onAppear {
+                            requestAuthorizationAndFetchData()
+                            
+                        }
                 }
-                .onAppear(perform: requestHealthKitAuthorization)
             }
         }
-    }
-
-    /// HealthKitの認証をリクエスト
-    private func requestHealthKitAuthorization() {
-        healthKitManager.requestAuthorization { success, error in
-            DispatchQueue.main.async {
+        
+        // 認証とデータ取得を実行するメソッド
+        func requestAuthorizationAndFetchData() {
+            healthKitManager.authorizeAndFetchHealthData(firestoreManager: firestoreManager) { success, _ in
                 if success {
                     isHealthKitAuthorized = true
-                    print("HealthKit認証が成功しました")
-                } else {
-                    print("HealthKit認証に失敗しました: \(error?.localizedDescription ?? "Unknown error")")
                 }
             }
         }

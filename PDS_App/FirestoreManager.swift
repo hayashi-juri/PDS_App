@@ -8,12 +8,14 @@
 import FirebaseFirestore
 
 class FirestoreManager {
-    private var db: Firestore {
+    /*private var db: Firestore {
         guard let firestore = Firestore.firestore() as Firestore? else {
             fatalError("Firestore is not properly initialized")
         }
         return firestore
-    }
+    }*/
+
+    private let db = Firestore.firestore()
 
     /// グループ設定を保存
         func saveGroupSettings(groupID: String, settings: [String: Any], completion: @escaping (Result<Void, Error>) -> Void) {
@@ -42,7 +44,20 @@ class FirestoreManager {
         }
     
     /// FirestoreにHealthKitのデータを保存する
-    func saveHealthData(data: [[String: Any]], completion: @escaping (Result<Void, Error>) -> Void) {
+    func saveHealthData(data: [[String: Any]], userID: String, completion: @escaping (Result<Void, Error>) -> Void) {
+            let batch = db.batch()
+            let collectionRef = db.collection("users").document(userID).collection("healthData")
+
+            for item in data {
+                let docRef = collectionRef.document()
+                batch.setData(item, forDocument: docRef)
+            }
+
+            batch.commit { error in
+                completion(error == nil ? .success(()) : .failure(error!))
+            }
+        }
+    /*func saveHealthData(data: [[String: Any]], completion: @escaping (Result<Void, Error>) -> Void) {
             let batch = db.batch()
             let collectionRef = db.collection("healthData")
 
@@ -58,7 +73,7 @@ class FirestoreManager {
                     completion(.success(()))
                 }
             }
-        }
+        }*/
 
     /// Firestoreからヘルスデータを取得するメソッド
     func fetchHealthData(completion: @escaping ([HealthDataItem]) -> Void) {
@@ -86,9 +101,11 @@ class FirestoreManager {
     }
 }
 
-struct HealthDataItem: Identifiable {
-    let id: String
-    let type: String
-    let value: Double
-    let date: Date
+struct HealthDataSetting: Identifiable {
+    var id: String // データ項目ID（例: stepCount）
+    var type: String // データ項目名（例: 歩数）
+    var isShared: Bool // 共有設定
+    var value: Double? // 実際のデータ値（任意）
+    var date: Date? // データ取得日時（任意）
 }
+

@@ -11,7 +11,13 @@ struct SettingView: View {
     @State private var groupSelection: String = "Public"
     @State private var isAnonymous: Bool = false
     @State private var deletionDate: Date = Date()
-    @State private var healthData: [HealthDataItem] = []
+    @State private var healthDataSettings: [HealthDataSetting] = [
+        HealthDataSetting(id: "stepCount", type: "歩数", isShared: true),
+        HealthDataSetting(id: "distanceWalkingRunning", type: "距離", isShared: false),
+        HealthDataSetting(id: "basalEnergyBurned", type: "基礎代謝", isShared: true),
+        HealthDataSetting(id: "activeEnergyBurned", type: "消費カロリー", isShared: false),
+
+    ]
 
     let firestoreManager: FirestoreManager // FirestoreManagerを受け取る
 
@@ -39,24 +45,13 @@ struct SettingView: View {
                         .datePickerStyle(CompactDatePickerStyle())
                 }
 
-                // データ一覧
-                Section(header: Text("共有するデータ")) {
-                    if healthData.isEmpty {
-                        Text("データがありません").foregroundColor(.gray)
-                    } else {
-                        ForEach(healthData) { item in
-                            VStack(alignment: .leading) {
-                                Text(item.type)
-                                    .font(.headline)
-                                Text("値: \(item.value)")
-                                    .font(.subheadline)
-                                Text("日付: \(item.date, formatter: dateFormatter)")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                        }
+                // 各データ項目の共有設定
+                Section(header: Text("共有設定")) {
+                    ForEach($healthDataSettings) { $setting in
+                        Toggle(setting.type, isOn: $setting.isShared)
                     }
                 }
+
             }
             .navigationTitle("設定")
             .navigationBarItems(trailing: Button("保存") {
@@ -69,32 +64,26 @@ struct SettingView: View {
         }
     }
 
-    private func fetchHealthData() {
-        firestoreManager.fetchHealthData { data in
-            healthData = data
-        }
-    }
-
     private func saveSettings() {
-            let settings = [
-                "isAnonymous": isAnonymous,
-                "deletionDate": ISO8601DateFormatter().string(from: deletionDate)
-            ] as [String: Any]
+        let settings = [
+            "isAnonymous": isAnonymous,
+            "deletionDate": ISO8601DateFormatter().string(from: deletionDate)
+        ] as [String: Any]
 
-            firestoreManager.saveGroupSettings(groupID: groupSelection, settings: settings) { result in
-                switch result {
-                case .success:
-                    print("設定が保存されました")
-                case .failure(let error):
-                    print("設定の保存に失敗しました: \(error.localizedDescription)")
-                }
+        firestoreManager.saveGroupSettings(groupID: groupSelection, settings: settings) { result in
+            switch result {
+            case .success:
+                print("設定が保存されました")
+            case .failure(let error):
+                print("設定の保存に失敗しました: \(error.localizedDescription)")
             }
         }
+    }
 }
 
-private let dateFormatter: DateFormatter = {
+/*private let dateFormatter: DateFormatter = {
     let formatter = DateFormatter()
     formatter.dateStyle = .medium
     formatter.timeStyle = .short
     return formatter
-}()
+}()*/
