@@ -46,17 +46,21 @@ class FirestoreManager: ObservableObject {
     }
     
     // Firestoreから設定を取得
-    func saveUserSettings(userID: String, groupID: String, isAnonymous: Bool, deletionDate: Date, healthDataSettings: [HealthDataSetting], completion: @escaping (Result<Void, Error>) -> Void) {
+    func saveUserSettings(userID: String, groupID: String, isAnonymous: Bool, deletionDate: Date, healthDataSettings: [HealthDataSetting], userName: String?, completion: @escaping (Result<Void, Error>) -> Void) {
         let healthDataDict = healthDataSettings.reduce(into: [String: Bool]()) { dict, setting in
             dict[setting.id] = setting.isShared
         }
         
-        let settings: [String: Any] = [
+        var settings: [String: Any] = [
             "isAnonymous": isAnonymous,
             "deletionDate": ISO8601DateFormatter().string(from: deletionDate),
             "healthDataSettings": healthDataDict
         ]
-        
+
+        if let userName = userName, !userName.isEmpty {
+                settings["userName"] = userName // ユーザーネームを保存
+            }
+
         let docRef = db.collection("users").document(userID).collection("settings").document(groupID)
         docRef.setData(settings) { error in
             if let error = error {

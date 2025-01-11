@@ -25,25 +25,25 @@ class HealthKitManager: ObservableObject {
             guard let self = self else { return }
             if success {
                 self.isAuthorized = true
-                print("HealthKit認証が成功しました")
+                print("HealthKit Authority Success")
                 // 認証成功時にuserIDを生成
                 self.userID = UserManager.shared.getOrCreateUserID()
                 guard let userID = self.userID else {
-                    print("User IDの生成に失敗しました")
+                    print("User ID generation failed")
                     completion(false, nil)
                     return
                 }
 
                 if let userID = self.userID {
-                    print("認証成功: User ID \(userID)")
+                    print("Authorisation Success: User ID \(userID)")
                 } else {
-                    print("エラー: ユーザーIDが生成されませんでした。再度生成を試みます。")
+                    print("error: User ID could not generated. Trying again.")
                     self.userID = UserManager.shared.getOrCreateUserID()
                     if let newUserID = self.userID {
-                        print("再生成成功: User ID \(newUserID)")
+                        print("Successfully generated: User ID \(newUserID)")
                     } else {
-                        print("再生成失敗: ユーザーIDが生成されませんでした")
-                        completion(false, NSError(domain: "HealthKitManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "ユーザーIDを生成できませんでした"]))
+                        print("Regeneration failed: User ID could not generated.")
+                        completion(false, NSError(domain: "HealthKitManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Could not generate User ID"]))
                         return
                     }
                 }
@@ -51,14 +51,14 @@ class HealthKitManager: ObservableObject {
                 // データ取得と保存
                 self.fetchHealthDataAndSave(to: firestoreManager, userID: userID) { fetchError in
                     if let fetchError = fetchError {
-                        print("HealthKitデータの取得または保存に失敗しました: \(fetchError.localizedDescription)")
+                        print("Failed to fetch data from HealthKit: \(fetchError.localizedDescription)")
                     } else {
-                        print("HealthKitデータが正常に取得され、Firestoreに保存されました")
+                        print("HealthKit data fetched successfully and saved at Firestore")
                     }
                     completion(true, fetchError)
                 }
             } else {
-                print("HealthKit認証に失敗しました: \(error?.localizedDescription ?? "Unknown error")")
+                print("HealthKit Authorization failed: \(error?.localizedDescription ?? "Unknown error")")
                 completion(false, error)
             }
         }
@@ -109,8 +109,8 @@ class HealthKitManager: ObservableObject {
         
         dispatchGroup.notify(queue: .main) {
             guard let userID = self.userID else {
-                print("エラー: ユーザーIDが存在しません")
-                completion(NSError(domain: "HealthKitManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "ユーザーIDが見つかりません"]))
+                print("error: User ID does not exist.")
+                completion(NSError(domain: "HealthKitManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "User ID cannot find."]))
                 return
             }
             
@@ -119,14 +119,15 @@ class HealthKitManager: ObservableObject {
                 groupID: "default",
                 isAnonymous: false,
                 deletionDate: Date(),
-                healthDataSettings: []
+                healthDataSettings: [],
+                userName: "SampleUser"
             ) { result in
                 switch result {
                 case .success:
-                    print("データ保存成功")
+                    print("Data saved successfully!")
                     completion(nil)
                 case .failure(let error):
-                    print("データ保存失敗: \(error.localizedDescription)")
+                    print("Data saving failed: \(error.localizedDescription)")
                     completion(error)
                 }
             }

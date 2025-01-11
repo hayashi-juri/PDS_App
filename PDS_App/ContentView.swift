@@ -29,7 +29,7 @@ struct ContentView: View {
                     SettingView(firestoreManager: firestoreManager, healthKitManager: healthKitManager)
                         .tabItem {
                             Image(systemName: "gear")
-                            Text("設定")
+                            Text("Settings")
                         }
                 }
                 .onAppear {
@@ -37,15 +37,15 @@ struct ContentView: View {
                         firestoreManager.fetchHealthData(userID: userID) { result in
                             switch result {
                             case .success:
-                                print("データ取得成功")
+                                print("Data fetched successfully!")
                             case .failure(let error):
-                                print("データ取得失敗: \(error.localizedDescription)")
+                                print("Data fetch failed: \(error.localizedDescription)")
                             }
                         }
                     }
                 }
             } else {
-                ProgressView("認証中...")
+                ProgressView("Authorising...")
                     .onAppear {
                         healthKitManager.authorizeAndFetchHealthData(firestoreManager: firestoreManager) { success, _ in
                             isHealthKitAuthorized = success
