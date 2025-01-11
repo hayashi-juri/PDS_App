@@ -9,63 +9,50 @@
  データの共有
  設定管理
  */
-
 import SwiftUI
 
 struct ContentView: View {
-    let firestoreManager: FirestoreManager // Firestore管理を受け取る
-    @StateObject var healthKitManager: HealthKitManager // HealthKit管理
-    @State private var isHealthKitAuthorized: Bool = false // 認証状態のトラッキング
+    @StateObject var firestoreManager = FirestoreManager()
+    @StateObject var healthKitManager = HealthKitManager()
+    @State private var isHealthKitAuthorized: Bool = false
 
     var body: some View {
         Group {
             if isHealthKitAuthorized {
                 TabView {
-                    VisualizeView() // データのグラフ化タブ
+                    /*VisualizeView(firestoreManager: firestoreManager)
                         .tabItem {
                             Image(systemName: "chart.bar")
                             Text("データ")
-                        }
-                    
-                    DataShareView() // データシェアタブ
-                        .tabItem {
-                            Image(systemName: "person.2.fill")
-                            Text("シェア")
-                        }
-                    
-                    SettingView(firestoreManager: firestoreManager) // 設定タブ
+                        }*/
+
+                    SettingView(firestoreManager: firestoreManager, healthKitManager: healthKitManager)
                         .tabItem {
                             Image(systemName: "gear")
                             Text("設定")
                         }
                 }
-            } else {
-                // 認証中のローディング画面を表示
-                VStack {
-                    ProgressView("HealthKitの認証中...")
-                        .progressViewStyle(CircularProgressViewStyle())
-                        .padding()
-                    // 認証後のユーザーID表示
+                .onAppear {
                     if let userID = healthKitManager.userID {
-                        Text("User ID: \(userID)")
-                            .font(.headline)
-                            .padding()
-                    }
-                        .onAppear {
-                            requestAuthorizationAndFetchData()
-                            
+                        firestoreManager.fetchHealthData(userID: userID) { result in
+                            switch result {
+                            case .success:
+                                print("データ取得成功")
+                            case .failure(let error):
+                                print("データ取得失敗: \(error.localizedDescription)")
+                            }
                         }
+                    }
                 }
-            }
-        }
-        
-        // 認証とデータ取得を実行するメソッド
-        func requestAuthorizationAndFetchData() {
-            healthKitManager.authorizeAndFetchHealthData(firestoreManager: firestoreManager) { success, _ in
-                if success {
-                    isHealthKitAuthorized = true
-                }
+            } else {
+                ProgressView("認証中...")
+                    .onAppear {
+                        healthKitManager.authorizeAndFetchHealthData(firestoreManager: firestoreManager) { success, _ in
+                            isHealthKitAuthorized = success
+                        }
+                    }
             }
         }
     }
 }
+

@@ -3,109 +3,86 @@
 //  PDS_App
 //
 //  Created by Juri Hayashi on 2025/01/07.
+/*
+ グループごとの実名・匿名、データ削除期限、各ヘルスデータ項目に対しての共有の有無を設定し、Firestoreにドキュメントとして保存。
+ Firestoreのセキュリティルールでドキュメントを参照できるようにする。
+ */
 //
-
 import FirebaseFirestore
 
-class FirestoreManager {
-    /*private var db: Firestore {
-        guard let firestore = Firestore.firestore() as Firestore? else {
-            fatalError("Firestore is not properly initialized")
-        }
-        return firestore
-    }*/
+class FirestoreManager: ObservableObject {
+    private lazy var db = Firestore.firestore()
 
-    private let db = Firestore.firestore()
-
-    /// グループ設定を保存
-        func saveGroupSettings(groupID: String, settings: [String: Any], completion: @escaping (Result<Void, Error>) -> Void) {
-            let docRef = db.collection("settings").document(groupID) // グループIDをドキュメントIDとして使用
-            docRef.setData(settings) { error in
-                if let error = error {
-                    completion(.failure(error))
-                } else {
-                    completion(.success(()))
-                }
-            }
-        }
-
-    /// グループ設定を取得
-        func fetchGroupSettings(groupID: String, completion: @escaping (Result<[String: Any], Error>) -> Void) {
-            let docRef = db.collection("settings").document(groupID)
-            docRef.getDocument { document, error in
-                if let error = error {
-                    completion(.failure(error))
-                } else if let document = document, document.exists {
-                    completion(.success(document.data() ?? [:]))
-                } else {
-                    completion(.failure(NSError(domain: "", code: 404, userInfo: [NSLocalizedDescriptionKey: "Document not found"])))
-                }
-            }
-        }
+    @Published var userSettings: [String: Any] = [:]
+    @Published var healthDataItems: [HealthDataItem] = [] // ヘルスデータアイテムを保持
     
-    /// FirestoreにHealthKitのデータを保存する
-    func saveHealthData(data: [[String: Any]], userID: String, completion: @escaping (Result<Void, Error>) -> Void) {
-            let batch = db.batch()
-            let collectionRef = db.collection("users").document(userID).collection("healthData")
-
-            for item in data {
-                let docRef = collectionRef.document()
-                batch.setData(item, forDocument: docRef)
-            }
-
-            batch.commit { error in
-                completion(error == nil ? .success(()) : .failure(error!))
-            }
-        }
-    /*func saveHealthData(data: [[String: Any]], completion: @escaping (Result<Void, Error>) -> Void) {
-            let batch = db.batch()
-            let collectionRef = db.collection("healthData")
-
-            for item in data {
-                let docRef = collectionRef.document()
-                batch.setData(item, forDocument: docRef)
-            }
-
-            batch.commit { error in
-                if let error = error {
-                    completion(.failure(error))
-                } else {
+    // ヘルスデータをFirestoreから取得
+    func fetchHealthData(userID: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        let collectionRef = db.collection("users").document(userID).collection("healthData")
+        collectionRef.getDocuments { snapshot, error in
+            if let error = error {
+                completion(.failure(error))
+            } else {
+                DispatchQueue.main.async {
+                    self.healthDataItems = snapshot?.documents.compactMap { document in
+                        guard
+                            let type = document.data()["type"] as? String,
+                            let value = document.data()["value"] as? Double,
+                            let timestamp = document.data()["date"] as? Timestamp
+                        else {
+                            return nil
+                        }
+                        return HealthDataItem(
+                            id: document.documentID,
+                            type: type,
+                            value: value,
+                            date: timestamp.dateValue()
+                        )
+                    } ?? []
                     completion(.success(()))
                 }
             }
-        }*/
-
-    /// Firestoreからヘルスデータを取得するメソッド
-    func fetchHealthData(completion: @escaping ([HealthDataItem]) -> Void) {
-        db.collection("healthData").getDocuments { snapshot, error in
+        }
+    }
+    
+    // Firestoreから設定を取得
+    func saveUserSettings(userID: String, groupID: String, isAnonymous: Bool, deletionDate: Date, healthDataSettings: [HealthDataSetting], completion: @escaping (Result<Void, Error>) -> Void) {
+        let healthDataDict = healthDataSettings.reduce(into: [String: Bool]()) { dict, setting in
+            dict[setting.id] = setting.isShared
+        }
+        
+        let settings: [String: Any] = [
+            "isAnonymous": isAnonymous,
+            "deletionDate": ISO8601DateFormatter().string(from: deletionDate),
+            "healthDataSettings": healthDataDict
+        ]
+        
+        let docRef = db.collection("users").document(userID).collection("settings").document(groupID)
+        docRef.setData(settings) { error in
             if let error = error {
-                print("Error fetching data: \(error.localizedDescription)")
-                completion([])
-                return
+                completion(.failure(error))
+            } else {
+                completion(.success(()))
             }
-
-            let data = snapshot?.documents.compactMap { document -> HealthDataItem? in
-                guard
-                    let type = document.data()["type"] as? String,
-                    let value = document.data()["value"] as? Double,
-                    let date = (document.data()["date"] as? Timestamp)?.dateValue()
-                else {
-                    return nil
-                }
-
-                return HealthDataItem(id: document.documentID, type: type, value: value, date: date)
-            } ?? []
-
-            completion(data)
+        }
+    }
+    
+    // Firestoreに設定を保存
+    func saveUserSettings(userID: String, groupID: String, settings: [String: Any], completion: @escaping (Result<Void, Error>) -> Void) {
+        let docRef = db.collection("users").document(userID).collection("settings").document(groupID)
+        docRef.setData(settings) { error in
+            if let error = error {
+                completion(.failure(error))
+            } else {
+                completion(.success(()))
+            }
         }
     }
 }
 
-struct HealthDataSetting: Identifiable {
-    var id: String // データ項目ID（例: stepCount）
-    var type: String // データ項目名（例: 歩数）
-    var isShared: Bool // 共有設定
-    var value: Double? // 実際のデータ値（任意）
-    var date: Date? // データ取得日時（任意）
+struct HealthDataItem: Identifiable {
+    var id: String
+    var type: String
+    var value: Double
+    var date: Date
 }
-
