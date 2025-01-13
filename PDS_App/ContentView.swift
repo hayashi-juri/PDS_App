@@ -1,61 +1,63 @@
-//
-//  ContentView.swift
-//  PDS_App
-//
-//  Created by Juri Hayashi on 2024/12/20.
-//
+/*
+ ContentView.swift
+ PDS_App
+ Created by Juri Hayashi on 2024/12/20.
+
+ タブを提供します：
+
+ データの視覚化
+ データの共有
+ 設定管理
+ */
 import SwiftUI
 
 struct ContentView: View {
-    let firestoreManager: FirestoreManager // Firestore管理を受け取る
-    @StateObject var healthKitManager: HealthKitManager // HealthKit管理
-    @State private var isHealthKitAuthorized: Bool = false // 認証状態のトラッキング
+    @StateObject var firestoreManager = FirestoreManager()
+    @StateObject var healthKitManager = HealthKitManager()
+    @State private var isHealthKitAuthorized: Bool = false
 
     var body: some View {
         Group {
             if isHealthKitAuthorized {
                 TabView {
-                    VisualizeView() // データのグラフ化タブ
+                    VisualizeView(firestoreManager: firestoreManager, healthKitManager: healthKitManager)
                         .tabItem {
                             Image(systemName: "chart.bar")
-                            Text("データ")
+                            Text("Data Graph")
                         }
 
-                    DataShareView() // データシェアタブ
-                        .tabItem {
-                            Image(systemName: "person.2.fill")
-                            Text("シェア")
-                        }
-
-                    SettingView(firestoreManager: firestoreManager) // 設定タブ
+                    SettingView(firestoreManager: firestoreManager, healthKitManager: healthKitManager)
                         .tabItem {
                             Image(systemName: "gear")
-                            Text("設定")
+                            Text("Settings")
                         }
                 }
+                .onAppear {
+                    if let userID = healthKitManager.userID {
+                        firestoreManager.fetchHealthData(userID: userID) { result in
+                            switch result {
+                            case .success:
+                                print("Data fetched successfully!")
+                            case .failure(let error):
+                                print("Data fetch failed: \(error.localizedDescription)")
+                            }
+                        }
+                    }
+                }
             } else {
-                // 認証中のローディング画面を表示
-                VStack {
-                    ProgressView("HealthKitの認証中...")
-                        .progressViewStyle(CircularProgressViewStyle())
-                        .padding()
-                }
-                .onAppear(perform: requestHealthKitAuthorization)
-            }
-        }
-    }
-
-    /// HealthKitの認証をリクエスト
-    private func requestHealthKitAuthorization() {
-        healthKitManager.requestAuthorization { success, error in
-            DispatchQueue.main.async {
-                if success {
-                    isHealthKitAuthorized = true
-                    print("HealthKit認証が成功しました")
-                } else {
-                    print("HealthKit認証に失敗しました: \(error?.localizedDescription ?? "Unknown error")")
-                }
+                ProgressView("Authorising...")
+                    .onAppear {
+                        healthKitManager.authorize { success, error in
+                            if success {
+                                isHealthKitAuthorized = true
+                                print("HealthKit authorization successful.")
+                            } else {
+                                print("Authorization failed: \(error?.localizedDescription ?? "Unknown error")")
+                            }
+                        }
+                    }
             }
         }
     }
 }
+

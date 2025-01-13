@@ -3,120 +3,178 @@
 //  PDS_App
 //
 //  Created by Juri Hayashi on 2025/01/07.
+/*
+ HealthKit認証機能
+ HealthKit認証後、３日分のデータを取得
+ HealthKitからデータを取得し、Firestoreにデータをコピーし保存する処理。
+ HealthKitデータを１日３回自動更新
+ 
+ */
 //
-
 import HealthKit
 import Foundation
 
 class HealthKitManager: ObservableObject {
     private let healthStore = HKHealthStore()
     @Published var isAuthorized: Bool = false
-
-    // 承認
-    func requestAuthorization(completion: @escaping (Bool, Error?) -> Void) {
+    @Published var userID: String? = nil
+    
+    // 認証
+    func authorize(completion: @escaping (Bool, Error?) -> Void) {
         let readTypes: Set<HKObjectType> = [
             HKQuantityType.quantityType(forIdentifier: .stepCount)!,
             HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
             HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned)!,
             HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
-            HKQuantityType.quantityType(forIdentifier: .appleMoveTime)!,
-            HKQuantityType.quantityType(forIdentifier: .appleStandTime)!,
             HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)!
         ]
-
+        
         healthStore.requestAuthorization(toShare: nil, read: readTypes) { success, error in
             DispatchQueue.main.async {
                 self.isAuthorized = success
+                if success {
+                    self.userID = UserManager.shared.getOrCreateUserID()
+                }
                 completion(success, error)
             }
         }
     }
-
-    /// HealthKitからデータを取得してFirestoreに保存
-        func fetchHealthDataAndSave(to firestoreManager: FirestoreManager, completion: @escaping (Error?) -> Void) {
-            // データ取得対象
-            let dataTypes: [HKSampleType] = [
-                HKQuantityType.quantityType(forIdentifier: .stepCount)!,
-                HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
-                HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned)!,
-                HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
-                HKQuantityType.quantityType(forIdentifier: .appleMoveTime)!,
-                HKQuantityType.quantityType(forIdentifier: .appleStandTime)!,
-                HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)!
-            ]
-
-            var allData: [[String: Any]] = []
-
-            let dispatchGroup = DispatchGroup()
-
-            for type in dataTypes {
-                dispatchGroup.enter()
-                fetchData(for: type) { result in
-                    switch result {
-                    case .success(let data):
-                        allData.append(contentsOf: data)
-                    case .failure(let error):
-                        print("Error fetching data for \(type.identifier): \(error.localizedDescription)")
-                    }
-                    dispatchGroup.leave()
+    
+    // ヘルスデータを Firestore に保存
+    func fetchHealthData(to firestoreManager: FirestoreManager, completion: @escaping (Error?) -> Void) {
+        guard let userID = self.userID else {
+            completion(NSError(domain: "HealthKitManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "User ID is missing."]))
+            return
+        }
+        
+        let dataTypes: [HKSampleType] = [
+            HKQuantityType.quantityType(forIdentifier: .stepCount)!,
+            HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+            HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned)!,
+            HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
+            HKCategoryType.categoryType(forIdentifier: .sleepAnalysis)!
+        ]
+        
+        var allData: [[String: Any]] = []
+        let dispatchGroup = DispatchGroup()
+        
+        for type in dataTypes {
+            dispatchGroup.enter()
+            fetchData(for: type, startDate: Date().addingTimeInterval(-1 * 24 * 60 * 60)) { result in
+                switch result {
+                case .success(let data):
+                    allData.append(contentsOf: data)
+                case .failure(let error):
+                    print("Error fetching data for \(type.identifier): \(error.localizedDescription)")
                 }
+                dispatchGroup.leave()
             }
-
-            dispatchGroup.notify(queue: .main) {
-                firestoreManager.saveHealthData(data: allData) { result in
-                    switch result {
-                    case .success:
-                        completion(nil)
-                    case .failure(let error):
-                        completion(error)
-                    }
+        }
+        
+        dispatchGroup.notify(queue: .main) {
+            firestoreManager.saveHealthDataByType(userID: userID, healthData: allData) { result in
+                switch result {
+                case .success:
+                    print("Health data saved successfully.")
+                    completion(nil)
+                case .failure(let error):
+                    print("Failed to save health data: \(error.localizedDescription)")
+                    completion(error)
                 }
             }
         }
-
-        /// 個別のHealthKitデータを取得
-        private func fetchData(for sampleType: HKSampleType, completion: @escaping (Result<[[String: Any]], Error>) -> Void) {
-            let predicate = HKQuery.predicateForSamples(withStart: Date().addingTimeInterval(-7 * 24 * 60 * 60), // 過去7日間
-                                                        end: Date(),
-                                                        options: .strictEndDate)
-
-            let query = HKSampleQuery(sampleType: sampleType,
-                                      predicate: predicate,
-                                      limit: HKObjectQueryNoLimit,
-                                      sortDescriptors: nil) { query, samples, error in
-                guard error == nil else {
-                    completion(.failure(error!))
-                    return
-                }
-
-                var resultData: [[String: Any]] = []
-
-                if let quantitySamples = samples as? [HKQuantitySample] {
-                    for sample in quantitySamples {
-                        let value = sample.quantity.doubleValue(for: HKUnit.count())
-                        let data: [String: Any] = [
-                            "type": sampleType.identifier,
-                            "value": value,
-                            "date": sample.startDate
-                        ]
-                        resultData.append(data)
-                    }
-                }
-
-                if let categorySamples = samples as? [HKCategorySample] {
-                    for sample in categorySamples {
-                        let data: [String: Any] = [
-                            "type": sampleType.identifier,
-                            "value": sample.value,
-                            "date": sample.startDate
-                        ]
-                        resultData.append(data)
-                    }
-                }
-
-                completion(.success(resultData))
+    }
+    
+    /*private func fetchData(for sampleType: HKSampleType, startDate: Date, completion: @escaping (Result<[[String: Any]], Error>) -> Void) {
+     let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictEndDate)
+     
+     let query = HKSampleQuery(sampleType: sampleType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
+     guard error == nil else {
+     completion(.failure(error!))
+     return
+     }
+     
+     var resultData: [[String: Any]] = []
+     if let quantitySamples = samples as? [HKQuantitySample] {
+     for sample in quantitySamples {
+     let unit: HKUnit
+     let type: String
+     
+     // サンプルの種類に応じた単位と type を設定
+     switch sampleType {
+     case HKQuantityType.quantityType(forIdentifier: .stepCount):
+     unit = .count()
+     type = "stepCount"
+     case HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning):
+     unit = .meter()
+     type = "distanceWalkingRunning"
+     case HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned):
+     unit = .kilocalorie()
+     type = "basalEnergyBurned"
+     case HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned):
+     unit = .kilocalorie()
+     type = "activeEnergyBurned"
+     default:
+     unit = .count()
+     type = "unknown"
+     }
+     
+     resultData.append([
+     "type": type,
+     "value": sample.quantity.doubleValue(for: unit),
+     "date": ISO8601DateFormatter().string(from: sample.startDate)
+     ])
+     }
+     }
+     completion(.success(resultData))
+     }*/
+    private func fetchData(for sampleType: HKSampleType, startDate: Date, completion: @escaping (Result<[[String: Any]], Error>) -> Void) {
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictEndDate)
+        
+        let query = HKSampleQuery(sampleType: sampleType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
+            if let error = error {
+                print("Error fetching data for \(sampleType.identifier): \(error.localizedDescription)")
+                completion(.failure(error))
+                return
             }
-
-            healthStore.execute(query)
+            
+            var resultData: [[String: Any]] = []
+            if let quantitySamples = samples as? [HKQuantitySample] {
+                for sample in quantitySamples {
+                    guard let (unit, type) = self.unitAndType(for: sampleType) else {
+                        print("Unsupported sample type: \(sampleType.identifier)")
+                        continue
+                    }
+                    
+                    let data: [String: Any] = [
+                        "type": type,
+                        "value": sample.quantity.doubleValue(for: unit),
+                        "date": ISO8601DateFormatter().string(from: sample.startDate)
+                    ]
+                    
+                    print("Fetched data: \(data)") // デバッグ用ログ
+                    resultData.append(data)
+                }
+            }
+            
+            completion(.success(resultData))
         }
+        
+        healthStore.execute(query)
+    }
+    
+    private func unitAndType(for sampleType: HKSampleType) -> (HKUnit, String)? {
+        switch sampleType {
+        case HKQuantityType.quantityType(forIdentifier: .stepCount):
+            return (.count(), "stepCount")
+        case HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning):
+            return (.meter(), "distanceWalkingRunning")
+        case HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned):
+            return (.kilocalorie(), "basalEnergyBurned")
+        case HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned):
+            return (.kilocalorie(), "activeEnergyBurned")
+        default:
+            return nil
+        }
+    }
 }

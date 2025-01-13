@@ -3,24 +3,34 @@
 //  PDS_App
 //
 //  Created by Juri Hayashi on 2025/01/10.
+/*
+ Firestoreから保存されているデータ取得する。
+ DataShareViewやVisualizerViewとデータを連携できるようにする。
+ */
 //
-
 import SwiftUI
 
 struct SettingView: View {
+    let firestoreManager: FirestoreManager
+    @ObservedObject var healthKitManager: HealthKitManager
+
     @State private var groupSelection: String = "Public"
     @State private var isAnonymous: Bool = false
     @State private var deletionDate: Date = Date()
-    @State private var healthData: [HealthDataItem] = []
+    @State private var healthDataSettings: [HealthDataSetting] = [
+        HealthDataSetting(id: "stepCount", type: "Step Count", isShared: true),
+        HealthDataSetting(id: "distanceWalkingRunning", type: "Distance", isShared: false),
+        HealthDataSetting(id: "basalEnergyBurned", type: "Basal Metabolism", isShared: true),
+        HealthDataSetting(id: "activeEnergyBurned", type: "Active Energy", isShared: false),
 
-    let firestoreManager: FirestoreManager // FirestoreManagerを受け取る
+    ]
+    @State private var userName: String = ""
 
     var body: some View {
         NavigationView {
             Form {
-                // グループ選択
-                Section(header: Text("共有グループ")) {
-                    Picker("グループを選択", selection: $groupSelection) {
+                Section(header: Text("Groups")) {
+                    Picker("Please select a group", selection: $groupSelection) {
                         Text("Family").tag("Family")
                         Text("Friends").tag("Friends")
                         Text("Public").tag("Public")
@@ -28,73 +38,65 @@ struct SettingView: View {
                     .pickerStyle(SegmentedPickerStyle())
                 }
 
-                // 実名・匿名
-                Section(header: Text("匿名または実名")) {
-                    Toggle("匿名で共有しますか？", isOn: $isAnonymous)
-                }
+                Section(header: Text("Given Name / Anonymous")) {
+                    Toggle("Do you want to use anonymous", isOn: $isAnonymous)
+                        .onChange(of: isAnonymous) { newValue in
+                            if !newValue {
+                                userName = "" // 匿名が無効化された場合、ユーザーネームをリセット
+                            }
+                        }
 
-                // 削除期限
-                Section(header: Text("データの削除期限")) {
-                    DatePicker("削除期限を設定", selection: $deletionDate, displayedComponents: .date)
+                    // 匿名の場合のみ表示
+                    if isAnonymous {
+                        TextField("Fill in your name", text: $userName)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .padding()
+                    }                }
+
+                Section(header: Text("Data Deletion")) {
+                    DatePicker("Setting Data Deletion", selection: $deletionDate, displayedComponents: .date)
                         .datePickerStyle(CompactDatePickerStyle())
                 }
 
-                // データ一覧
-                Section(header: Text("共有するデータ")) {
-                    if healthData.isEmpty {
-                        Text("データがありません").foregroundColor(.gray)
-                    } else {
-                        ForEach(healthData) { item in
-                            VStack(alignment: .leading) {
-                                Text(item.type)
-                                    .font(.headline)
-                                Text("値: \(item.value)")
-                                    .font(.subheadline)
-                                Text("日付: \(item.date, formatter: dateFormatter)")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                        }
+                Section(header: Text("Health Data Sharing")) {
+                    ForEach($healthDataSettings) { $setting in
+                        Toggle(setting.type, isOn: $setting.isShared)
                     }
                 }
             }
-            .navigationTitle("設定")
-            .navigationBarItems(trailing: Button("保存") {
+            .navigationTitle("Settings")
+            .navigationBarItems(trailing: Button("Save") {
                 saveSettings()
             })
-
-            .onAppear {
-                fetchHealthData()
-            }
-        }
-    }
-
-    private func fetchHealthData() {
-        firestoreManager.fetchHealthData { data in
-            healthData = data
         }
     }
 
     private func saveSettings() {
-            let settings = [
-                "isAnonymous": isAnonymous,
-                "deletionDate": ISO8601DateFormatter().string(from: deletionDate)
-            ] as [String: Any]
+        guard let userID = healthKitManager.userID else {
+            print("error: userID does not exist")
+            return
+        }
 
-            firestoreManager.saveGroupSettings(groupID: groupSelection, settings: settings) { result in
-                switch result {
-                case .success:
-                    print("設定が保存されました")
-                case .failure(let error):
-                    print("設定の保存に失敗しました: \(error.localizedDescription)")
-                }
+        firestoreManager.saveUserSettings(
+            userID: userID,
+            groupID: groupSelection,
+            isAnonymous: isAnonymous,
+            deletionDate: deletionDate,
+            healthDataSettings: healthDataSettings,
+            userName: isAnonymous ? userName : nil
+        ) { result in
+            switch result {
+            case .success:
+                print("Settings saved successfully!")
+            case .failure(let error):
+                print("Settings save failed: \(error.localizedDescription)")
             }
         }
+    }
 }
 
-private let dateFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .medium
-    formatter.timeStyle = .short
-    return formatter
-}()
+struct HealthDataSetting: Identifiable {
+    var id: String
+    var type: String
+    var isShared: Bool
+}
