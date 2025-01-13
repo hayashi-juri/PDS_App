@@ -16,6 +16,7 @@
 		6F6F267F2D1550F50062E9DF /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F6F267E2D1550F50062E9DF /* HealthKit.framework */; };
 		6F6F26812D1551010062E9DF /* HealthKitUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F6F26802D1551010062E9DF /* HealthKitUI.framework */; platformFilters = (ios, xros, ); };
 		6F93C9F52D2BA00300C8E789 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F93C9F42D2BA00300C8E789 /* CloudKit.framework */; };
+		6FC0AE5F2D34CA3C00A9DABB /* Charts.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6FC0AE5E2D34CA3C00A9DABB /* Charts.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -42,6 +43,7 @@
 		6FA58A162D14F2E1000EB4FF /* PDS_App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PDS_App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6FA58A272D14F2E2000EB4FF /* PDS_AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PDS_AppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6FA58A312D14F2E2000EB4FF /* PDS_AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PDS_AppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		6FC0AE5E2D34CA3C00A9DABB /* Charts.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Charts.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.2.sdk/System/Library/Frameworks/Charts.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -95,6 +97,7 @@
 				6F39EC742D2CCF5200044D92 /* FirebaseAppCheck in Frameworks */,
 				6F39EC8C2D2CEF7800044D92 /* FirebaseFirestore in Frameworks */,
 				6F39EC6E2D2CC4A800044D92 /* FirebaseAnalytics in Frameworks */,
+				6FC0AE5F2D34CA3C00A9DABB /* Charts.framework in Frameworks */,
 				6F6F26812D1551010062E9DF /* HealthKitUI.framework in Frameworks */,
 				6F39EC762D2CCF5200044D92 /* FirebaseAppDistribution-Beta in Frameworks */,
 			);
@@ -120,6 +123,7 @@
 		6F6F267D2D1550F50062E9DF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				6FC0AE5E2D34CA3C00A9DABB /* Charts.framework */,
 				6F93C9F42D2BA00300C8E789 /* CloudKit.framework */,
 				6F6F26802D1551010062E9DF /* HealthKitUI.framework */,
 				6F6F267E2D1550F50062E9DF /* HealthKit.framework */,
@@ -390,6 +394,7 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=*]" = "Hayashi.PDS-App\n";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -444,6 +449,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=*]" = "Hayashi.PDS-App\n";
 				SWIFT_COMPILATION_MODE = wholemodule;
 			};
 			name = Release;
@@ -462,6 +468,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "PDS-App-Info.plist";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Health data will be updated to reflect your fitness progress and goals.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Health data will be used to track your fitness progress and provide personalized insights.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -502,6 +510,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "PDS-App-Info.plist";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Health data will be updated to reflect your fitness progress and goals.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Health data will be used to track your fitness progress and provide personalized insights.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

@@ -20,11 +20,11 @@ struct ContentView: View {
         Group {
             if isHealthKitAuthorized {
                 TabView {
-                    /*VisualizeView(firestoreManager: firestoreManager)
+                    VisualizeView(firestoreManager: firestoreManager, healthKitManager: healthKitManager)
                         .tabItem {
                             Image(systemName: "chart.bar")
-                            Text("データ")
-                        }*/
+                            Text("Data Graph")
+                        }
 
                     SettingView(firestoreManager: firestoreManager, healthKitManager: healthKitManager)
                         .tabItem {
@@ -47,8 +47,13 @@ struct ContentView: View {
             } else {
                 ProgressView("Authorising...")
                     .onAppear {
-                        healthKitManager.authorizeAndFetchHealthData(firestoreManager: firestoreManager) { success, _ in
-                            isHealthKitAuthorized = success
+                        healthKitManager.authorize { success, error in
+                            if success {
+                                isHealthKitAuthorized = true
+                                print("HealthKit authorization successful.")
+                            } else {
+                                print("Authorization failed: \(error?.localizedDescription ?? "Unknown error")")
+                            }
                         }
                     }
             }
