@@ -21,20 +21,6 @@ struct VisualizeView: View {
                 .font(.title)
                 .padding()
 
-            /*
-            // ヘルスデータを取得するボタン
-            Button("Fetch Health Data") {
-                healthKitManager.fetchHealthData(to: firestoreManager) { error in
-                    if let error = error {
-                        print("Error fetching HealthKit data: \(error.localizedDescription)")
-                    } else {
-                        print("HealthKit data fetched and saved successfully.")
-                    }
-                }
-            }
-            .padding()
-            .disabled(!healthKitManager.isAuthorized)*/
-
             // Step Count データを取得するボタン
             Button("Fetch Step Count Data") {
                 if let userID = healthKitManager.userID {

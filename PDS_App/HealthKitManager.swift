@@ -60,7 +60,7 @@ class HealthKitManager: ObservableObject {
         
         for type in dataTypes {
             dispatchGroup.enter()
-            fetchData(for: type, startDate: Date().addingTimeInterval(-1 * 24 * 60 * 60)) { result in
+            fetchData(for: type, startDate: Date().addingTimeInterval(-2 * 24 * 60 * 60)) { result in
                 switch result {
                 case .success(let data):
                     allData.append(contentsOf: data)
@@ -85,49 +85,6 @@ class HealthKitManager: ObservableObject {
         }
     }
     
-    /*private func fetchData(for sampleType: HKSampleType, startDate: Date, completion: @escaping (Result<[[String: Any]], Error>) -> Void) {
-     let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictEndDate)
-     
-     let query = HKSampleQuery(sampleType: sampleType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
-     guard error == nil else {
-     completion(.failure(error!))
-     return
-     }
-     
-     var resultData: [[String: Any]] = []
-     if let quantitySamples = samples as? [HKQuantitySample] {
-     for sample in quantitySamples {
-     let unit: HKUnit
-     let type: String
-     
-     // サンプルの種類に応じた単位と type を設定
-     switch sampleType {
-     case HKQuantityType.quantityType(forIdentifier: .stepCount):
-     unit = .count()
-     type = "stepCount"
-     case HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning):
-     unit = .meter()
-     type = "distanceWalkingRunning"
-     case HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned):
-     unit = .kilocalorie()
-     type = "basalEnergyBurned"
-     case HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned):
-     unit = .kilocalorie()
-     type = "activeEnergyBurned"
-     default:
-     unit = .count()
-     type = "unknown"
-     }
-     
-     resultData.append([
-     "type": type,
-     "value": sample.quantity.doubleValue(for: unit),
-     "date": ISO8601DateFormatter().string(from: sample.startDate)
-     ])
-     }
-     }
-     completion(.success(resultData))
-     }*/
     private func fetchData(for sampleType: HKSampleType, startDate: Date, completion: @escaping (Result<[[String: Any]], Error>) -> Void) {
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: Date(), options: .strictEndDate)
         

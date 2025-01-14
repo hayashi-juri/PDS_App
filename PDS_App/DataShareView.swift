@@ -8,14 +8,95 @@
 import SwiftUI
 
 struct DataShareView: View {
+    let userID: String
+    @ObservedObject var firestoreManager: FirestoreManager
+
+    @State private var groupSettings: [String: [String: Bool]] = [:]
+    @State private var sharedData: [HealthDataItem] = []
+    @State private var selectedGroup: String = "Family" // 初期選択グループ
+    @State private var errorMessage: String?
+
     var body: some View {
         VStack {
-            Text("Let's share your progress")
+            Text("Data Sharing")
                 .font(.title)
                 .padding()
 
-            // データシェアの内容を表示するUIをここに実装
-            Text("データシェアの内容をここに表示")
+            Picker("Select Group", selection: $selectedGroup) {
+                ForEach(Array(groupSettings.keys), id: \.self) { group in
+                    Text(group).tag(group)
+                }
+            }
+            .pickerStyle(SegmentedPickerStyle())
+            .padding()
+            .onChange(of: selectedGroup) { _ in
+                filterSharedData()
+            }
+
+            Form {
+                Section(header: Text("Shared Health Data")) {
+                    if sharedData.isEmpty {
+                        Text("No data available for this group.")
+                            .foregroundColor(.gray)
+                    } else {
+                        List(sharedData) { item in
+                            VStack(alignment: .leading) {
+                                Text("Type: \(item.type)")
+                                Text("Value: \(item.value)")
+                                Text("Date: \(item.date, formatter: dateFormatter)")
+                            }
+                        }
+                    }
+                }
+            }
+            .onAppear {
+                fetchGroupSettings()
+            }
+
+            if let errorMessage = errorMessage {
+                Text(errorMessage)
+                    .foregroundColor(.red)
+                    .padding()
+            }
         }
     }
+
+    private func fetchGroupSettings() {
+        firestoreManager.fetchGroupSettings(userID: userID) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let settings):
+                    self.groupSettings = settings
+                    if let firstGroup = settings.keys.first {
+                        self.selectedGroup = firstGroup
+                        self.filterSharedData()
+                    }
+                case .failure(let error):
+                    self.errorMessage = "Failed to fetch group settings: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    private func filterSharedData() {
+        firestoreManager.fetchFilteredHealthData(userID: userID, groupID: selectedGroup) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let data):
+                    self.sharedData = data
+                case .failure(let error):
+                    self.errorMessage = "Failed to fetch health data: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+
+    private var dateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        return formatter
+    }
 }
+

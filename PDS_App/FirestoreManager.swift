@@ -16,51 +16,39 @@ class FirestoreManager: ObservableObject {
     @Published var userSettings: [String: Any] = [:]
     @Published var healthDataItems: [HealthDataItem] = [] // ヘルスデータアイテムを保持
     @Published var stepCountData: [HealthDataItem] = []   // 歩数データ
+    @Published var sharedData: [HealthDataItem] = [] // Firestoreから取得した共有データ
 
-    // ヘルスデータをFirestoreから取得
-    func fetchHealthData(userID: String, completion: @escaping (Result<Void, Error>) -> Void) {
+
+    func fetchHealthData(userID: String, completion: @escaping (Result<[HealthDataItem], Error>) -> Void) {
         let collectionRef = db.collection("users").document(userID).collection("healthData")
+        print("Fetching data for custom user ID: \(userID)")
+
         collectionRef.getDocuments { snapshot, error in
             if let error = error {
                 completion(.failure(error))
             } else {
-                DispatchQueue.main.async {
-                    self.healthDataItems = snapshot?.documents.compactMap { document in
-                        guard
-                            let type = document.data()["type"] as? String,
-                            let value = document.data()["value"] as? Double,
-                            let timestamp = document.data()["date"] as? Timestamp
-                        else {
-                            return nil
-                        }
-                        return HealthDataItem(
-                            id: document.documentID,
-                            type: type,
-                            value: value,
-                            date: timestamp.dateValue()
-                        )
-                    } ?? []
-                    completion(.success(()))
-                }
+                let data = snapshot?.documents.compactMap { document -> HealthDataItem? in
+                    guard
+                        let type = document.data()["type"] as? String,
+                        let value = document.data()["value"] as? Double,
+                        let timestamp = document.data()["date"] as? Timestamp
+                    else {
+                        return nil
+                    }
+                    return HealthDataItem(
+                        id: document.documentID,
+                        type: type,
+                        value: value,
+                        date: timestamp.dateValue()
+                    )
+                } ?? []
+                completion(.success(data))
             }
         }
     }
 
-    /*func fetchStepCountData(userID: String) {
-     db.collection("users").document(userID).collection("healthData")
-     .whereField("type", isEqualTo: "stepCount")
-     .getDocuments { snapshot, error in
-     if let error = error {
-     print("Error fetching step count data: \(error.localizedDescription)")
-     return
-     }
-     self.stepCountData = snapshot?.documents.compactMap { document -> HealthDataItem? in
-     try? document.data(as: HealthDataItem.self)
-     } ?? []
-     print("Fetched \(self.stepCountData.count) step count data points")
-     }
-     }*/
 
+    // 歩数データをサブコレクションから取得
     func fetchStepCountDataFromSubcollection(userID: String, dataType: String, completion: @escaping (Result<[HealthDataItem], Error>) -> Void) {
         let collectionRef = db.collection("users").document(userID).collection("healthData").document(dataType).collection("data")
 
@@ -70,6 +58,7 @@ class FirestoreManager: ObservableObject {
                 completion(.failure(error))
                 return
             }
+
             guard let documents = snapshot?.documents else {
                 print("No \(dataType) data found")
                 completion(.success([]))
@@ -78,16 +67,13 @@ class FirestoreManager: ObservableObject {
 
             let data = documents.compactMap { document -> HealthDataItem? in
                 let data = document.data()
-                // Debug log for document content
-                print("Processing document: \(document.documentID), content: \(data)")
-
                 guard
                     let type = data["type"] as? String,
                     let value = data["value"] as? Double,
                     let dateString = data["date"] as? String,
                     let date = ISO8601DateFormatter().date(from: dateString)
                 else {
-                    print("Invalid data format in document: \(document.documentID), content: \(data)")
+                    print("Invalid data format in document: \(document.documentID)")
                     return nil
                 }
 
@@ -102,8 +88,6 @@ class FirestoreManager: ObservableObject {
             completion(.success(data))
         }
     }
-
-
 
     // Firestoreから設定を取得
     func saveUserSettings(userID: String, groupID: String, isAnonymous: Bool, deletionDate: Date, healthDataSettings: [HealthDataSetting], userName: String?, completion: @escaping (Result<Void, Error>) -> Void) {
@@ -130,7 +114,7 @@ class FirestoreManager: ObservableObject {
             }
         }
     }
-    
+
     // Firestoreに設定を保存
     func saveUserSettings(userID: String, groupID: String, settings: [String: Any], completion: @escaping (Result<Void, Error>) -> Void) {
         let docRef = db.collection("users").document(userID).collection("settings").document(groupID)
@@ -142,6 +126,8 @@ class FirestoreManager: ObservableObject {
             }
         }
     }
+
+
     // ヘルスデータを保存するメソッド
     func saveHealthDataByType(userID: String, healthData: [[String: Any]], completion: @escaping (Result<Void, Error>) -> Void) {
         let userRef = db.collection("users").document(userID).collection("healthData")
@@ -166,10 +152,166 @@ class FirestoreManager: ObservableObject {
         }
     }
 
+    // グループ設定を取得
+    func fetchGroupSettings(userID: String, completion: @escaping (Result<[String: [String: Bool]], Error>) -> Void) {
+        let collectionRef = db.collection("users").document(userID).collection("settings")
+
+        collectionRef.getDocuments { snapshot, error in
+            if let error = error {
+                completion(.failure(error))
+            } else {
+                guard let documents = snapshot?.documents else {
+                    completion(.success([:]))
+                    return
+                }
+
+                var groupSettings: [String: [String: Bool]] = [:]
+                for document in documents {
+                    if let settings = document.data()["healthDataSettings"] as? [String: Bool] {
+                        groupSettings[document.documentID] = settings
+                    }
+                }
+                completion(.success(groupSettings))
+            }
+        }
     }
 
+    // firestoreから共有ヘルスデータを取得
+    func fetchSharedHealthData(userID: String, completion: @escaping (Result<[HealthDataItem], Error>) -> Void) {
+        let collectionRef = db.collection("users").document(userID).collection("healthData")
+
+        collectionRef.getDocuments { snapshot, error in
+            if let error = error {
+                print("Error fetching shared health data for user \(userID): \(error.localizedDescription)")
+                completion(.failure(error))
+                return
+            }
+
+            guard let documents = snapshot?.documents else {
+                print("No documents found for user: \(userID)")
+                completion(.success([]))
+                return
+            }
+
+            let data = documents.compactMap { document -> HealthDataItem? in
+                print("Processing document: \(document.documentID), content: \(document.data())")
+                guard
+                    let type = document.data()["type"] as? String,
+                    let value = document.data()["value"] as? Double,
+                    let timestamp = document.data()["date"] as? Timestamp
+                else {
+                    return nil
+                }
+                return HealthDataItem(
+                    id: document.documentID,
+                    type: type,
+                    value: value,
+                    date: timestamp.dateValue()
+                )
+            }
+
+            print("Fetched data: \(data)")
+            completion(.success(data))
+        }
+    }
+
+    // activeEnergyBurned を取得する関数
+    func fetchActiveEnergyBurned(userID: String, completion: @escaping (Result<[HealthDataItem], Error>) -> Void) {
+        fetchHealthDataByType(userID: userID, dataType: "activeEnergyBurned", completion: completion)
+    }
+
+    // stepCount を取得する関数
+    func fetchStepCount(userID: String, completion: @escaping (Result<[HealthDataItem], Error>) -> Void) {
+        fetchHealthDataByType(userID: userID, dataType: "stepCount", completion: completion)
+    }
+
+    // distanceWalkingRunning を取得する関数
+    func fetchDistanceWalkingRunning(userID: String, completion: @escaping (Result<[HealthDataItem], Error>) -> Void) {
+        fetchHealthDataByType(userID: userID, dataType: "distanceWalkingRunning", completion: completion)
+    }
+
+    // basalEnergyBurned を取得する関数
+    func fetchBasalEnergyBurned(userID: String, completion: @escaping (Result<[HealthDataItem], Error>) -> Void) {
+        fetchHealthDataByType(userID: userID, dataType: "basalEnergyBurned", completion: completion)
+    }
+
+    // 共通のヘルスデータ取得処理
+    private func fetchHealthDataByType(userID: String, dataType: String, completion: @escaping (Result<[HealthDataItem], Error>) -> Void) {
+        let collectionRef = db.collection("users").document(userID).collection("healthData").document(dataType).collection("data")
+
+        collectionRef.getDocuments { snapshot, error in
+            if let error = error {
+                completion(.failure(error))
+            } else {
+                let data = snapshot?.documents.compactMap { document -> HealthDataItem? in
+                    guard
+                        let value = document.data()["value"] as? Double,
+                        let dateString = document.data()["date"] as? String,
+                        let date = ISO8601DateFormatter().date(from: dateString)
+                    else {
+                        return nil
+                    }
+                    return HealthDataItem(
+                        id: document.documentID,
+                        type: dataType,
+                        value: value,
+                        date: date
+                    )
+                } ?? []
+                completion(.success(data))
+            }
+        }
+    }
+
+    func fetchHealthDataBasedOnSettings(userID: String, settings: [String: Bool], completion: @escaping (Result<[HealthDataItem], Error>) -> Void) {
+        var resultData: [HealthDataItem] = []
+        var fetchCount = 0
+        let enabledDataTypes = settings.filter { $0.value }.keys
+
+        for dataType in enabledDataTypes {
+            fetchHealthDataByType(userID: userID, dataType: dataType) { result in
+                fetchCount += 1
+
+                switch result {
+                case .success(let data):
+                    resultData.append(contentsOf: data)
+                case .failure(let error):
+                    print("Error fetching \(dataType): \(error.localizedDescription)")
+                }
+
+                // すべてのデータ取得処理が完了したら completion を呼び出す
+                if fetchCount == enabledDataTypes.count {
+                    completion(.success(resultData))
+                }
+            }
+        }
+
+        // 有効なデータタイプがない場合は空の結果を返す
+        if enabledDataTypes.isEmpty {
+            completion(.success([]))
+        }
+    }
+
+    func fetchFilteredHealthData(userID: String, groupID: String, completion: @escaping (Result<[HealthDataItem], Error>) -> Void) {
+        let docRef = db.collection("users").document(userID).collection("settings").document(groupID)
+
+        docRef.getDocument { snapshot, error in
+            if let error = error {
+                completion(.failure(error))
+            } else if let data = snapshot?.data(),
+                      let healthDataSettings = data["healthDataSettings"] as? [String: Bool] {
+                self.fetchHealthDataBasedOnSettings(userID: userID, settings: healthDataSettings, completion: completion)
+            } else {
+                completion(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "No settings found."])))
+            }
+        }
+    }
+
+
+}
+
 struct HealthDataItem: Identifiable, Codable, Equatable {
-    @DocumentID var id: String?
+    var id: String
     var type: String
     var value: Double
     var date: Date
@@ -181,4 +323,5 @@ struct HealthDataItem: Identifiable, Codable, Equatable {
                lhs.date == rhs.date
     }
 }
+
 

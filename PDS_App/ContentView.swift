@@ -25,6 +25,19 @@ struct ContentView: View {
                             Image(systemName: "chart.bar")
                             Text("Data Graph")
                         }
+                    if let userID = healthKitManager.userID {
+                        DataShareView(
+                            userID: userID,
+                            firestoreManager: firestoreManager
+                        )
+                        .tabItem {
+                            Image(systemName: "person.2")
+                            Text("Data Share")
+                        }
+
+                    } else {
+                        Text("User ID not available. Please try again later.")
+                    }
 
                     SettingView(firestoreManager: firestoreManager, healthKitManager: healthKitManager)
                         .tabItem {
@@ -33,18 +46,23 @@ struct ContentView: View {
                         }
                 }
                 .onAppear {
+                    fetchHealthDataOnStart()
+
+                    // Firestoreから既存のHealthDataを取得
                     if let userID = healthKitManager.userID {
                         firestoreManager.fetchHealthData(userID: userID) { result in
                             switch result {
                             case .success:
-                                print("Data fetched successfully!")
+                                print("Data fetched successfully! (from firestore)")
                             case .failure(let error):
                                 print("Data fetch failed: \(error.localizedDescription)")
                             }
                         }
                     }
                 }
-            } else {
+            }
+
+            else {
                 ProgressView("Authorising...")
                     .onAppear {
                         healthKitManager.authorize { success, error in
@@ -59,5 +77,17 @@ struct ContentView: View {
             }
         }
     }
+
+    private func fetchHealthDataOnStart() {
+            guard isHealthKitAuthorized else { return }
+
+            healthKitManager.fetchHealthData(to: firestoreManager) { error in
+                if let error = error {
+                    print("Failed to fetch and save HealthKit data: \(error.localizedDescription)")
+                } else {
+                    print("HealthKit data fetched and saved successfully (when app on start).")
+                }
+            }
+        }
 }
 
