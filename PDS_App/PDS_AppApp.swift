@@ -12,28 +12,28 @@ import Firebase
 import FirebaseAppCheck*/
 
 import SwiftUI
-import FirebaseCore
-import FirebaseAppCheck
+ import FirebaseCore
+ import FirebaseAppCheck
 
-class YourSimpleAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
-  func createProvider(with app: FirebaseApp) -> AppCheckProvider? {
-    return AppAttestProvider(app: app)
-  }
-}
+/*class YourSimpleAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
+    func createProvider(with app: FirebaseApp) -> AppCheckProvider? {
+        return AppAttestProvider(app: app)
+    }
+}*/
 
 class AppDelegate: NSObject, UIApplicationDelegate {
-  func application(_ application: UIApplication,
-                   didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
 
-      // AppCheck Provider を登録
-      //let providerFactory = YourSimpleAppCheckProviderFactory()
-      //AppCheck.setAppCheckProviderFactory(providerFactory)
+        // AppCheck Provider を登録
+        // let providerFactory = YourSimpleAppCheckProviderFactory()
+        // AppCheck.setAppCheckProviderFactory(providerFactory)
 
-      // Firebase を初期化
-      FirebaseApp.configure()
+        // Firebase を初期化
+        FirebaseApp.configure()
 
-      return true
-  }
+        return true
+    }
 }
 
 @main
