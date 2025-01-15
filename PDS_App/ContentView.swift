@@ -121,101 +121,24 @@ struct ContentView: View {
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject var authManager = AuthManager() // AuthManagerを追加
+    @StateObject var authManager: AuthManager
     @StateObject var firestoreManager: FirestoreManager
     @StateObject var healthKitManager: HealthKitManager
     @State private var isHealthKitAuthorized: Bool = false
+    @State private var email: String = "" // メールアドレス入力
+    @State private var password: String = "" // パスワード入力
+    @State private var isRegistering: Bool = false // ログイン/登録の切り替え
 
-    init() {
-        // AuthManagerを共有し、他のマネージャーに渡す
-        let sharedAuthManager = AuthManager()
-        _authManager = StateObject(wrappedValue: sharedAuthManager)
-        _healthKitManager = StateObject(wrappedValue: HealthKitManager(authManager: sharedAuthManager))
-        _firestoreManager = StateObject(wrappedValue: FirestoreManager(authManager: sharedAuthManager))
+    init(authManager: AuthManager, firestoreManager: FirestoreManager, healthKitManager: HealthKitManager) {
+        _authManager = StateObject(wrappedValue: authManager)
+        _firestoreManager = StateObject(wrappedValue: firestoreManager)
+        _healthKitManager = StateObject(wrappedValue: healthKitManager)
     }
 
     var body: some View {
-        /*
-         Group {
-         if isHealthKitAuthorized && authManager.isLoggedIn {
-         TabView {
-
-         VisualizeView(firestoreManager: firestoreManager, healthKitManager: healthKitManager)
-         .tabItem {
-         Image(systemName: "chart.bar")
-         Text("Data Graph")
-         }
-
-         if let userID = healthKitManager.userID {
-         DataShareView(
-         userID: userID,
-         firestoreManager: firestoreManager
-         )
-         .tabItem {
-         Image(systemName: "person.2")
-         Text("Data Share")
-         }
-         } else {
-         Text("User ID not available. Please try again later.")
-         }
-
-         SettingView(
-         firestoreManager: firestoreManager,
-         healthKitManager: healthKitManager
-         )
-         .tabItem {
-         Image(systemName: "gear")
-         Text("Settings")
-         }
-         }
-         .onAppear {
-         if let userID = healthKitManager.userID {
-         firestoreManager.fetchHealthData(userID: userID) { result in
-         switch result {
-         case .success:
-         print("Data fetched successfully! (from firestore)")
-         case .failure(let error):
-         print("Data fetch failed: \(error.localizedDescription)")
-         }
-         }
-         }
-         }
-         } else if !authManager.isLoggedIn {
-         VStack {
-         Text("Please log in")
-         .font(.title)
-         Button("Log In") {
-         authManager.login(email: "user@example.com", password: "password") { success in
-         if success {
-         print("Login successful.")
-         } else {
-         print("Login failed: \(authManager.authErrorMessage ?? "Unknown error")")
-         }
-         }
-         }
-         .padding()
-         }
-         } else {
-         ProgressView("Authorising...")
-         .onAppear {
-         healthKitManager.authorize { success, error in
-         if success {
-         isHealthKitAuthorized = true
-         print("HealthKit authorization successful.")
-         } else {
-         print("Authorization failed: \(error?.localizedDescription ?? "Unknown error")")
-         }
-         }
-         }
-         }
-         }
-         */
-        Group {
-            Text("Hello, World!")
             if isHealthKitAuthorized && authManager.isLoggedIn {
-                Text("Logged In")
                 TabView {
-                    // 歩数データ表示（データが取れるかのテスト）
+                    // データの視覚化
                     VisualizeView(
                         firestoreManager: firestoreManager,
                         healthKitManager: healthKitManager
@@ -225,7 +148,22 @@ struct ContentView: View {
                         Text("Data Graph")
                     }
 
-                    // ユーザーの設定を保存
+                    // データ共有
+                    if let userID = authManager.userID {
+                        DataShareView(
+                            userID: userID,
+                            firestoreManager: firestoreManager
+                        )
+                        .tabItem {
+                            Image(systemName: "person.2")
+                            Text("Data Share")
+                        }
+                    } else {
+                        Text("User ID not available. Please try again later.")
+                    }
+
+                    // user123@test.com, User123
+                    // 設定画面
                     SettingView(
                         firestoreManager: firestoreManager,
                         healthKitManager: healthKitManager
@@ -235,32 +173,21 @@ struct ContentView: View {
                         Text("Settings")
                     }
                 }
-            } else if !authManager.isLoggedIn {
-                VStack {
-                    Text("Please log in")
-                        .font(.title)
-                    Button("Log In") {
-                        authManager.login(email: "user@example.com", password: "password") { success in
-                            if success {
-                                print("Login successful.")
-                            } else {
-                                print("Login failed: \(authManager.authErrorMessage ?? "Unknown error")")
-                            }
-                        }
-                    }
-                    .padding()
-                }
-            } else {
+                .onAppear(perform: fetchHealthDataOnStart)
+            }
+
+        else if !authManager.isLoggedIn {
+            authView
+                } else {
                 VStack {
                     ProgressView("Authorising...")
                         .onAppear(perform: authorizeHealthKit)
                 }
             }
         }
-    }
 
     private func authorizeHealthKit() {
-        healthKitManager.authorizeHK(authManager: authManager) { success, error in
+        healthKitManager.authorizeHK { success, error in
             if success {
                 isHealthKitAuthorized = true
                 print("HealthKit authorization successful.")
@@ -277,9 +204,50 @@ struct ContentView: View {
             if let error = error {
                 print("Failed to fetch and save HealthKit data: \(error.localizedDescription)")
             } else {
-                print("HealthKit data fetched and saved successfully (when app on start).")
+                print("HealthKit data fetched and saved successfully.")
             }
         }
     }
+
+    private var authView: some View {
+            VStack {
+                Text(authManager.isRegistering ? "Register" : "Log In")
+                    .font(.largeTitle)
+                    .padding()
+
+                TextField("Email", text: $authManager.email)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding()
+
+                SecureField("Password", text: $authManager.password)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding()
+
+                Button(authManager.isRegistering ? "Register" : "Log In") {
+                    authManager.loginOrRegister { success in
+                        if success {
+                            print("\(authManager.isRegistering ? "Registration" : "Login") successful.")
+                        } else {
+                            print("\(authManager.isRegistering ? "Registration" : "Login") failed: \(authManager.authErrorMessage ?? "Unknown error")")
+                        }
+                    }
+                }
+                .padding()
+                .buttonStyle(.bordered)
+
+                Button("Switch to \(authManager.isRegistering ? "Log In" : "Register")") {
+                    authManager.isRegistering.toggle()
+                }
+                .padding()
+
+                if let errorMessage = authManager.authErrorMessage {
+                    Text("Error: \(errorMessage)")
+                        .foregroundColor(.red)
+                        .padding()
+                }
+            }
+            .padding()
+        }
+
 }
 

@@ -17,18 +17,17 @@ import Foundation
 class HealthKitManager: ObservableObject {
     private let healthStore = HKHealthStore()
     @Published var isAuthorized: Bool = false
-    @Published var userID: String? {
-        authManager.userID // AuthManagerのuserIDを参照
-    }
+    @Published var userID: String?
 
     private let authManager: AuthManager
 
     init(authManager: AuthManager) {
-            self.authManager = authManager
+        self.authManager = authManager
+        self.userID = authManager.userID
     }
 
     // 認証
-    func authorizeHK (authManager: AuthManager, completion: @escaping (Bool, Error?) -> Void) {
+    func authorizeHK (completion: @escaping (Bool, Error?) -> Void) {
         let readTypes: Set<HKObjectType> = [
             HKQuantityType.quantityType(forIdentifier: .stepCount)!,
             HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
@@ -38,10 +37,13 @@ class HealthKitManager: ObservableObject {
         ]
 
         healthStore.requestAuthorization(toShare: nil, read: readTypes) { success, error in
-                    DispatchQueue.main.async {
-                        self.isAuthorized = success
-                        completion(success, error)
-                    }
+            DispatchQueue.main.async {
+                self.isAuthorized = success
+                if success {
+                    self.userID = self.authManager.userID
+                }
+                completion(success, error)
+            }
         }
     }
 

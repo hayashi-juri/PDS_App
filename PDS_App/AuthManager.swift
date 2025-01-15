@@ -12,55 +12,66 @@ import FirebaseAuth
 
 class AuthManager: ObservableObject {
     @Published var isLoggedIn: Bool = false
-    @Published var authErrorMessage: String? = nil
-    @Published var userID: String? = nil
+        @Published var userID: String?
+        @Published var authErrorMessage: String?
+        @Published var email: String = "" // ユーザーが入力するメール
+        @Published var password: String = "" // ユーザーが入力するパスワード
+        @Published var isRegistering: Bool = false // 登録/ログインの切り替え
 
-    // ログイン
-    func login(email: String, password: String, completion: @escaping (Bool) -> Void) {
-        Auth.auth().signIn(withEmail: email, password: password) { [weak self] authResult, error in
-            guard let self = self else { return }
 
-            if let error = error {
-                self.authErrorMessage = error.localizedDescription
-                self.isLoggedIn = false
-                self.userID = nil
-                completion(false)
+    func loginOrRegister(completion: @escaping (Bool) -> Void) {
+            if isRegistering {
+                register(completion: completion)
             } else {
-                self.authErrorMessage = nil
-                self.isLoggedIn = true
-                self.userID = authResult?.user.uid // FirebaseのユーザーIDを取得
-                completion(true)
+                login(completion: completion)
             }
         }
-    }
+
+    // ログイン
+    private func login(completion: @escaping (Bool) -> Void) {
+            Auth.auth().signIn(withEmail: email, password: password) { [weak self] authResult, error in
+                DispatchQueue.main.async {
+                    if let error = error {
+                        self?.authErrorMessage = error.localizedDescription
+                        completion(false)
+                    } else {
+                        self?.userID = authResult?.user.uid
+                        self?.isLoggedIn = true
+                        self?.authErrorMessage = nil
+                        completion(true)
+                    }
+                }
+            }
+        }
+
+    private func register(completion: @escaping (Bool) -> Void) {
+            Auth.auth().createUser(withEmail: email, password: password) { [weak self] authResult, error in
+                DispatchQueue.main.async {
+                    if let error = error {
+                        self?.authErrorMessage = error.localizedDescription
+                        completion(false)
+                    } else {
+                        self?.userID = authResult?.user.uid
+                        self?.isLoggedIn = true
+                        self?.authErrorMessage = nil
+                        completion(true)
+                    }
+                }
+            }
+        }
 
     // ログアウト
     func logout() {
-        do {
-            try Auth.auth().signOut()
-            self.isLoggedIn = false
-            self.userID = nil
-        } catch let error as NSError {
-            self.authErrorMessage = error.localizedDescription
-        }
-    }
-
-    // ユーザー作成
-    func register(email: String, password: String, completion: @escaping (Bool) -> Void) {
-        Auth.auth().createUser(withEmail: email, password: password) { [weak self] authResult, error in
-            guard let self = self else { return }
-
-            if let error = error {
+            do {
+                try Auth.auth().signOut()
+                DispatchQueue.main.async {
+                    self.isLoggedIn = false
+                    self.userID = nil
+                }
+            } catch {
                 self.authErrorMessage = error.localizedDescription
-                completion(false)
-            } else {
-                self.authErrorMessage = nil
-                self.isLoggedIn = true
-                self.userID = authResult?.user.uid // FirebaseのユーザーIDを取得
-                completion(true)
             }
         }
-    }
 
     // 現在のユーザー取得
     func getCurrentUser() -> User? {

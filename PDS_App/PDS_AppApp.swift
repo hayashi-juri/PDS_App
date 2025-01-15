@@ -11,6 +11,8 @@ import FirebaseFirestore
 import Firebase
 import FirebaseAppCheck*/
 
+//user123@test.com, User123
+
 import SwiftUI
 import FirebaseCore
 import FirebaseAppCheck
@@ -41,12 +43,23 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 struct PDS_AppApp: App {
     // register app delegate for Firebase setup
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    private let firestoreManager = FirestoreManager() // Firestoreの操作を管理
-    private let healthKitManager = HealthKitManager() // HealthKitの操作を管理
+    private let authManager = AuthManager() // AuthManager を初期化
+    private let firestoreManager: FirestoreManager
+    private let healthKitManager: HealthKitManager
+
+    init() {
+        // AuthManagerを他のマネージャーに渡す
+        self.firestoreManager = FirestoreManager(authManager: authManager)
+        self.healthKitManager = HealthKitManager(authManager: authManager)
+    }
 
     var body: some Scene {
         WindowGroup {
-            ContentView(firestoreManager: firestoreManager, healthKitManager: healthKitManager)
+            ContentView(
+                authManager: authManager,
+                firestoreManager: firestoreManager,
+                healthKitManager: healthKitManager
+            )
         }
     }
 }

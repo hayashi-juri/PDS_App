@@ -12,6 +12,7 @@ import FirebaseFirestore
 
 class FirestoreManager: ObservableObject {
     private lazy var db = Firestore.firestore()
+    
     private let authManager: AuthManager
 
     init(authManager: AuthManager) {
