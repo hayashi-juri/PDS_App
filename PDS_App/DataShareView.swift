@@ -16,7 +16,15 @@ struct DataShareView: View {
     @State private var selectedGroup: String = "Family" // 初期選択グループ
     @State private var errorMessage: String?
 
+    let dataTypeDisplayNames: [String: String] = [
+        "stepCount": "Steps",
+        "distanceWalkingRunning": "Distance",
+        "basalEnergyBurned": "Basal Energy",
+        "activeEnergyBurned": "Active Energy"
+    ]
+
     var body: some View {
+        
         VStack {
             Text("Data Sharing")
                 .font(.title)
@@ -29,7 +37,7 @@ struct DataShareView: View {
             }
             .pickerStyle(SegmentedPickerStyle())
             .padding()
-            .onChange(of: selectedGroup) { _ in
+            .onChange(of: selectedGroup) {
                 filterSharedData()
             }
 
@@ -38,17 +46,21 @@ struct DataShareView: View {
                     if sharedData.isEmpty {
                         Text("No data available for this group.")
                             .foregroundColor(.gray)
-                    } else {
+                    }
+
+                    else {
+                        // データをリスト化
                         List(sharedData) { item in
                             VStack(alignment: .leading) {
-                                Text("Type: \(item.type)")
-                                Text("Value: \(item.value)")
+                                Text("Type: \(dataTypeDisplayNames[item.type] ?? item.type)")
+                                Text("Value: \(String(format: "%.2f", item.value))")
                                 Text("Date: \(item.date, formatter: dateFormatter)")
                             }
                         }
                     }
                 }
             }
+
             .onAppear {
                 fetchGroupSettings()
             }

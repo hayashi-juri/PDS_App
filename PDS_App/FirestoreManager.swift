@@ -89,7 +89,7 @@ class FirestoreManager: ObservableObject {
         }
     }
 
-    // Firestoreから設定を取得
+    // Firestoreに設定を保存
     func saveUserSettings(userID: String, groupID: String, isAnonymous: Bool, deletionDate: Date, healthDataSettings: [HealthDataSetting], userName: String?, completion: @escaping (Result<Void, Error>) -> Void) {
         let healthDataDict = healthDataSettings.reduce(into: [String: Bool]()) { dict, setting in
             dict[setting.id] = setting.isShared
@@ -126,7 +126,6 @@ class FirestoreManager: ObservableObject {
             }
         }
     }
-
 
     // ヘルスデータを保存するメソッド
     func saveHealthDataByType(userID: String, healthData: [[String: Any]], completion: @escaping (Result<Void, Error>) -> Void) {
@@ -239,7 +238,7 @@ class FirestoreManager: ObservableObject {
     private func fetchHealthDataByType(userID: String, dataType: String, completion: @escaping (Result<[HealthDataItem], Error>) -> Void) {
         let collectionRef = db.collection("users").document(userID).collection("healthData").document(dataType).collection("data")
 
-        collectionRef.getDocuments { snapshot, error in
+        collectionRef.order(by: "date", descending: true).limit(to: 1).getDocuments { snapshot, error in
             if let error = error {
                 completion(.failure(error))
             } else {
@@ -263,6 +262,7 @@ class FirestoreManager: ObservableObject {
         }
     }
 
+    // 設定に基づいたデータを取ってくる
     func fetchHealthDataBasedOnSettings(userID: String, settings: [String: Bool], completion: @escaping (Result<[HealthDataItem], Error>) -> Void) {
         var resultData: [HealthDataItem] = []
         var fetchCount = 0
@@ -292,6 +292,7 @@ class FirestoreManager: ObservableObject {
         }
     }
 
+    // ヘルスデータをフィルタリングする
     func fetchFilteredHealthData(userID: String, groupID: String, completion: @escaping (Result<[HealthDataItem], Error>) -> Void) {
         let docRef = db.collection("users").document(userID).collection("settings").document(groupID)
 

@@ -40,8 +40,8 @@ struct SettingView: View {
 
                 Section(header: Text("Given Name / Anonymous")) {
                     Toggle("Do you want to use anonymous", isOn: $isAnonymous)
-                        .onChange(of: isAnonymous) { newValue in
-                            if !newValue {
+                        .onChange(of: isAnonymous) {
+                            if !isAnonymous {
                                 userName = "" // 匿名が無効化された場合、ユーザーネームをリセット
                             }
                         }
