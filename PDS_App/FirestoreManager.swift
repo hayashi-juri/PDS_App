@@ -12,7 +12,12 @@ import FirebaseFirestore
 
 class FirestoreManager: ObservableObject {
     private lazy var db = Firestore.firestore()
-    
+    private let authManager: AuthManager
+
+    init(authManager: AuthManager) {
+            self.authManager = authManager
+    }
+
     @Published var userSettings: [String: Any] = [:]
     @Published var healthDataItems: [HealthDataItem] = [] // ヘルスデータアイテムを保持
     @Published var stepCountData: [HealthDataItem] = []   // 歩数データ
@@ -20,6 +25,11 @@ class FirestoreManager: ObservableObject {
     
     
     func fetchHealthData(userID: String, completion: @escaping (Result<[HealthDataItem], Error>) -> Void) {
+        guard let userID = authManager.userID else {
+            completion(.failure(NSError(domain: "FirestoreManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "User ID is missing."])))
+            return
+        }
+
         let collectionRef = db.collection("users").document(userID).collection("healthData")
         print("Fetching data for custom user ID: \(userID)")
         

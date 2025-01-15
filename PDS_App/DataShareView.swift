@@ -72,23 +72,13 @@ struct DataShareView: View {
                         }
                     }
                 }
-                Section(header: Text("Detail")) {
+                Section(header: Text("Details")) {
                     if sharedData.isEmpty {
                         Text("No data available for this group.")
                             .foregroundColor(.gray)
                     }
                     
                     else {
-                        // グラフ表示
-                        Chart(sharedData) { item in
-                            LineMark(
-                                x: .value("Date", item.date),
-                                y: .value("Value", item.value)
-                            )
-                            .interpolationMethod(.monotone) // Smooth line
-                        }
-                        .frame(height: 200) // Set a fixed height for the chart
-                        .padding()
                         
                         // データをリスト化
                         List(sharedData) { item in

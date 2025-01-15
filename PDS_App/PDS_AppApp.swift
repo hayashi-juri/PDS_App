@@ -12,8 +12,9 @@ import Firebase
 import FirebaseAppCheck*/
 
 import SwiftUI
- import FirebaseCore
- import FirebaseAppCheck
+import FirebaseCore
+import FirebaseAppCheck
+import FirebaseAuth
 
 /*class YourSimpleAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
     func createProvider(with app: FirebaseApp) -> AppCheckProvider? {
