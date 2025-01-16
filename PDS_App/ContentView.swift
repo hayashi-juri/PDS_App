@@ -138,18 +138,19 @@ struct ContentView: View {
     var body: some View {
             if isHealthKitAuthorized && authManager.isLoggedIn {
                 TabView {
-                    // データの視覚化
-                    VisualizeView(
-                        firestoreManager: firestoreManager,
-                        healthKitManager: healthKitManager
-                    )
-                    .tabItem {
-                        Image(systemName: "chart.bar")
-                        Text("Data Graph")
-                    }
-
                     // データ共有
                     if let userID = authManager.userID {
+                        // データの視覚化
+                        /*VisualizeView(
+                            userID: userID,
+                            firestoreManager: firestoreManager,
+                            healthKitManager: healthKitManager
+                        )
+                        .tabItem {
+                            Image(systemName: "chart.bar")
+                            Text("Data Graph")
+                        }*/
+
                         DataShareView(
                             userID: userID,
                             firestoreManager: firestoreManager
@@ -173,7 +174,7 @@ struct ContentView: View {
                         Text("Settings")
                     }
                 }
-                .onAppear(perform: fetchHealthDataOnStart)
+                //.onAppear(perform: fetchHealthDataOnStart)
             }
 
         else if !authManager.isLoggedIn {

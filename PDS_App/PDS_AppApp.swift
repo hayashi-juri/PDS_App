@@ -25,15 +25,16 @@ import FirebaseAuth
 }*/
 
 class AppDelegate: NSObject, UIApplicationDelegate {
-    func application(_ application: UIApplication,
-                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-
-        // AppCheck Provider を登録
-        // let providerFactory = YourSimpleAppCheckProviderFactory()
-        // AppCheck.setAppCheckProviderFactory(providerFactory)
-
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+            
         // Firebase を初期化
         FirebaseApp.configure()
+        print("FirebaseApp.configure() called")
+
+        FirebaseConfiguration.shared.setLoggerLevel(.debug)
+        print("Firebase configured successfully.")
 
         return true
     }
@@ -41,17 +42,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
 @main
 struct PDS_AppApp: App {
-    // register app delegate for Firebase setup
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    private let authManager = AuthManager() // AuthManager を初期化
-    private let firestoreManager: FirestoreManager
-    private let healthKitManager: HealthKitManager
 
-    init() {
-        // AuthManagerを他のマネージャーに渡す
-        self.firestoreManager = FirestoreManager(authManager: authManager)
-        self.healthKitManager = HealthKitManager(authManager: authManager)
-    }
+    @StateObject private var authManager = AuthManager.shared
+    @StateObject private var firestoreManager = FirestoreManager(authManager: AuthManager.shared)
+    @StateObject private var healthKitManager = HealthKitManager(authManager: AuthManager.shared)
 
     var body: some Scene {
         WindowGroup {
@@ -63,3 +58,4 @@ struct PDS_AppApp: App {
         }
     }
 }
+

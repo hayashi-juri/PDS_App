@@ -10,6 +10,8 @@ import Charts
 
 
 struct VisualizeView: View {
+    let userID: String
+
     @ObservedObject var firestoreManager: FirestoreManager
     @ObservedObject var healthKitManager: HealthKitManager
     @State private var showGraph: Bool = false
@@ -62,12 +64,10 @@ struct VisualizeView: View {
             }
             
             .onAppear {
-                if let userID = healthKitManager.userID {
                     fetchStepCountData(userID: userID, firestoreManager: firestoreManager) { data in
                         self.stepCountData = data
                         print("Fetched \(data.count) step count data points on appear.")
                     }
-                }
             }
             // firestoreManager.stepCountData の変更を監視
             .onChange(of: firestoreManager.stepCountData) {
