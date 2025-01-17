@@ -7,96 +7,95 @@
 
 import SwiftUI
 import Charts
+import FirebaseAuth
+import FirebaseFirestore
 
 struct DataShareView: View {
     let userID: String
+
     @ObservedObject var firestoreManager: FirestoreManager
-    
-    @State private var groupSettings: [String: [String: Bool]] = [:]
-    @State private var sharedData: [HealthDataItem] = []
+
+    @State private var myData: [HealthDataItem] = [] // 自分のヘルスデータ
+    @State private var sharedData: [(userName: String, data: [HealthDataItem])] = [] // 他のユーザーのヘルスデータ
+
     @State private var selectedGroup: String = "Family" // 初期選択グループ
     @State private var errorMessage: String?
-    
+
+    let groupOptions: [String] = ["Family", "Friends", "Public"] // グループオプション
     let dataTypeDisplayNames: [String: String] = [
         "stepCount": "Steps",
         "distanceWalkingRunning": "Distance",
         "basalEnergyBurned": "Basal Energy",
         "activeEnergyBurned": "Active Energy"
     ]
-    
     let dataTypeUnits: [String: String] = [
         "stepCount": "steps",
         "distanceWalkingRunning": "km",
         "basalEnergyBurned": "kcal",
         "activeEnergyBurned": "kcal"
     ]
-    
-    /// グループタブの順序を固定
-    private var orderedGroupKeys: [String] {
-        let predefinedOrder = ["Family", "Friends", "Public"]
-        let sortedKeys = predefinedOrder.filter { Array(groupSettings.keys).contains($0) }
-        return sortedKeys
-    }
-    
+
     var body: some View {
         VStack {
             Text("Data Sharing")
                 .font(.title)
                 .padding()
-            
+
+            // グループ選択
             Picker("Select Group", selection: $selectedGroup) {
-                ForEach(orderedGroupKeys, id: \.self) { group in
+                ForEach(groupOptions, id: \.self) { group in
                     Text(group).tag(group)
                 }
             }
             .pickerStyle(SegmentedPickerStyle())
             .padding()
             .onChange(of: selectedGroup) {
-                filterSharedData()
+                fetchData()
             }
-            
+
             Form {
-                Section(header: Text("Total Values by Type")) {
-                    if groupedDataTotals.isEmpty {
-                        Text("No data available for this group.")
+                Section(header: Text("My Data")) {
+                    if myData.isEmpty {
+                        Text("No health data available.")
                             .foregroundColor(.gray)
                     } else {
-                        // データタイプごとの合計値を表示
-                        ForEach(Array(groupedDataTotals.keys), id: \.self) { (key: String) in
-                            HStack {
-                                Text(dataTypeDisplayNames[key] ?? key)
-                                Spacer()
-                                Text(formattedNumberWithUnit(groupedDataTotals[key] ?? 0, type: key))
-                                
-                            }
+                        List(myData) { item in
+                            healthDataRow(item: item)
                         }
                     }
                 }
-                Section(header: Text("Details")) {
+
+                Section(header: Text("Shared Data")) {
                     if sharedData.isEmpty {
-                        Text("No data available for this group.")
+                        Text("No shared data available.")
                             .foregroundColor(.gray)
-                    }
-                    
-                    else {
-                        
-                        // データをリスト化
-                        List(sharedData) { item in
-                            VStack(alignment: .leading) {
-                                Text("Type: \(dataTypeDisplayNames[item.type] ?? item.type)")
-                                Text("Value: \(String(format: "%.2f", item.value))")
-                                Text("Date: \(item.date, formatter: dateFormatter)")
+                    } else {
+                        List {
+                            ForEach(sharedData, id: \.userName) { userData in
+                                Section(header: Text(userData.userName)) {
+                                    ForEach(userData.data) { item in
+                                        VStack(alignment: .leading) {
+                                            let typeDisplayName = dataTypeDisplayNames[item.type] ?? item.type
+                                            let valueText = String(format: "%.2f", item.value)
+                                            let unit = dataTypeUnits[item.type] ?? ""
+                                            Text("\(typeDisplayName): \(valueText) \(unit)")
+                                            Text("Date: \(item.date, formatter: dateFormatter)")
+                                                .font(.footnote)
+                                                .foregroundColor(.gray)
+                                        }
+                                    }
+                                }
                             }
                         }
-                        
                     }
                 }
             }
-            
+
             .onAppear {
-                fetchGroupSettings()
+                fetchHealthDataQ() // 初回表示時にデータ取得
             }
-            
+
+            // エラーメッセージ
             if let errorMessage = errorMessage {
                 Text(errorMessage)
                     .foregroundColor(.red)
@@ -104,61 +103,91 @@ struct DataShareView: View {
             }
         }
     }
-    
-    private func fetchGroupSettings() {
-        firestoreManager.fetchGroupSettings(userID: userID) { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let settings):
-                    self.groupSettings = settings
-                    if let firstGroup = settings.keys.first {
-                        self.selectedGroup = firstGroup
-                        self.filterSharedData()
+
+    // ヘルスデータの行ビュー
+    private func healthDataRow(item: HealthDataItem) -> some View {
+        VStack(alignment: .leading) {
+            let typeDisplayName = dataTypeDisplayNames[item.type] ?? item.type
+            let valueText = String(format: "%.2f", item.value)
+            Text("Type: \(typeDisplayName)")
+            Text("Value: \(valueText)")
+            Text("Date: \(item.date, formatter: dateFormatter)")
+        }
+    }
+
+    private func fetchHealthDataQ() {
+        // 現在のユーザーIDを取得
+        guard let userID = Auth.auth().currentUser?.uid else {
+            print("Error: No authenticated user.")
+            return
+        }
+
+        // Firestoreリファレンスを作成
+        let healthDataRef = Firestore.firestore()
+            .collection("users")
+            .document(userID)
+            .collection("healthData")
+            .document("stepCount")
+            .collection("data")
+
+        // Firestoreからデータを取得
+        healthDataRef.getDocuments { snapshot, error in
+            if let error = error {
+                print("Error fetching health data: \(error.localizedDescription)")
+            } else {
+                print("Successfully fetched health data")
+                if let documents = snapshot?.documents {
+                    for document in documents {
+                        print("Document ID: \(document.documentID), Data: \(document.data())")
                     }
-                case .failure(let error):
-                    self.errorMessage = "Failed to fetch group settings: \(error.localizedDescription)"
+                } else {
+                    print("No documents found")
                 }
             }
         }
     }
-    
-    private func filterSharedData() {
-        firestoreManager.fetchFilteredHealthData(userID: userID, groupID: selectedGroup) { result in
+
+    private func fetchData() {
+        fetchMyData()
+        fetchSharedData()
+    }
+
+    private func fetchMyData() {
+        firestoreManager.fetchMyHealthData { result in
             DispatchQueue.main.async {
                 switch result {
                 case .success(let data):
-                    self.sharedData = data
+                    print("Fetched My Data: \(data)")
+                    print("Fetching MyData for userID: \(userID)")
+                    self.myData = data
                 case .failure(let error):
-                    self.errorMessage = "Failed to fetch health data: \(error.localizedDescription)"
+                    self.errorMessage = "Failed to fetch my data: \(error.localizedDescription)"
+                    print("Error fetching MyData: \(error.localizedDescription)")
                 }
             }
         }
     }
-    
+
+    private func fetchSharedData() {
+        firestoreManager.fetchSharedHealthData(for: userID, groupID: selectedGroup) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let data):
+                    self.sharedData = data.map { (key, value) in
+                        (userName: key, data: value)
+                    }
+                case .failure(let error):
+                    self.errorMessage = "Failed to fetch shared data: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
         formatter.dateStyle = .short
         formatter.timeStyle = .short
         return formatter
     }
-    
-    /// 数値をカンマ区切りにフォーマットし、小数点以下を切り捨て
-    private func formattedNumberWithUnit(_ value: Double, type: String) -> String {
-        let truncatedValue = floor(value) // 小数点以下を切り捨て
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        let formattedNumber = formatter.string(from: NSNumber(value: truncatedValue)) ?? String(Int(truncatedValue))
-        let unit: String = dataTypeUnits[type] ?? "" // 単位を取得（存在しない場合は空文字）
-        return "\(formattedNumber) \(unit)"
-    }
-    
-    /// 各データタイプの合計値を計算するプロパティ
-    private var groupedDataTotals: [String: Double] {
-        var totals: [String: Double] = [:]
-        for item in sharedData {
-            totals[item.type, default: 0] += item.value
-        }
-        return totals
-    }
-    
 }
+

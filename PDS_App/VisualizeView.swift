@@ -20,7 +20,7 @@ struct VisualizeView: View {
     var body: some View {
         ZStack {
             Color.white.ignoresSafeArea(edges: .all)
-            
+
             VStack {
                 Text("Your Progress")
                     .font(.title)
@@ -70,12 +70,12 @@ struct VisualizeView: View {
                     }
             }
             // firestoreManager.stepCountData の変更を監視
-            .onChange(of: firestoreManager.stepCountData) {
+            /*.onChange(of: firestoreManager.stepCountData) {
                 print("Step count data updated: \(firestoreManager.stepCountData)") // デバッグログ
                 if !firestoreManager.stepCountData.isEmpty {
                     showGraph = true // データが更新されたらグラフを表示する
                 }
-            }
+            }*/
         }
     }
 }

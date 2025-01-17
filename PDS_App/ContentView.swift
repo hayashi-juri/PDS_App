@@ -141,7 +141,7 @@ struct ContentView: View {
                     // データ共有
                     if let userID = authManager.userID {
                         // データの視覚化
-                        /*VisualizeView(
+                        VisualizeView(
                             userID: userID,
                             firestoreManager: firestoreManager,
                             healthKitManager: healthKitManager
@@ -149,7 +149,7 @@ struct ContentView: View {
                         .tabItem {
                             Image(systemName: "chart.bar")
                             Text("Data Graph")
-                        }*/
+                        }
 
                         DataShareView(
                             userID: userID,

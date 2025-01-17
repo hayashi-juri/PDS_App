@@ -40,9 +40,11 @@ class AuthManager: ObservableObject {
             Auth.auth().signIn(withEmail: email, password: password) { [weak self] authResult, error in
                 DispatchQueue.main.async {
                     if let error = error {
+                        print("Error signing in: \(error.localizedDescription)")
                         self?.authErrorMessage = error.localizedDescription
                         completion(false)
                     } else {
+                        print("Successfully signed in. User ID: \(authResult?.user.uid ?? "")")
                         self?.userID = authResult?.user.uid
                         self?.isLoggedIn = true
                         self?.authErrorMessage = nil
