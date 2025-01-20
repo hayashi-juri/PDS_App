@@ -141,7 +141,7 @@ struct ContentView: View {
                     // データ共有
                     if let userID = authManager.userID {
                         // データの視覚化
-                        VisualizeView(
+                        /*VisualizeView(
                             userID: userID,
                             firestoreManager: firestoreManager,
                             healthKitManager: healthKitManager
@@ -149,7 +149,7 @@ struct ContentView: View {
                         .tabItem {
                             Image(systemName: "chart.bar")
                             Text("Data Graph")
-                        }
+                        }*/
 
                         DataShareView(
                             userID: userID,
@@ -165,14 +165,14 @@ struct ContentView: View {
 
                     // user123@test.com, User123
                     // 設定画面
-                    SettingView(
+                    /*SettingView(
                         firestoreManager: firestoreManager,
                         healthKitManager: healthKitManager
                     )
                     .tabItem {
                         Image(systemName: "gear")
                         Text("Settings")
-                    }
+                    }*/
                 }
                 //.onAppear(perform: fetchHealthDataOnStart)
             }

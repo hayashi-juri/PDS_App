@@ -6,20 +6,21 @@
 //
 
 import SwiftUI
-import Charts
 import FirebaseAuth
 import FirebaseFirestore
+import Combine
 
 struct DataShareView: View {
     let userID: String
 
     @ObservedObject var firestoreManager: FirestoreManager
 
-    @State private var myData: [HealthDataItem] = [] // 自分のヘルスデータ
     @State private var sharedData: [(userName: String, data: [HealthDataItem])] = [] // 他のユーザーのヘルスデータ
-
     @State private var selectedGroup: String = "Family" // 初期選択グループ
     @State private var errorMessage: String?
+    @State private var selectedGroupPublisher = PassthroughSubject<String, Never>()
+    // デバウンス処理用のキャンセラ
+    @State private var cancellables: Set<AnyCancellable> = []
 
     let groupOptions: [String] = ["Family", "Friends", "Public"] // グループオプション
     let dataTypeDisplayNames: [String: String] = [
@@ -49,22 +50,13 @@ struct DataShareView: View {
             }
             .pickerStyle(SegmentedPickerStyle())
             .padding()
-            .onChange(of: selectedGroup) {
+            /*.onReceive(Just(selectedGroup)) { _ in
                 fetchData()
-            }
-
-            Form {
-                Section(header: Text("My Data")) {
-                    if myData.isEmpty {
-                        Text("No health data available.")
-                            .foregroundColor(.gray)
-                    } else {
-                        List(myData) { item in
-                            healthDataRow(item: item)
-                        }
+            }*/
+            .onChange(of: selectedGroup) { newValue in
+                    selectedGroupPublisher.send(newValue)
                     }
-                }
-
+            Form {
                 Section(header: Text("Shared Data")) {
                     if sharedData.isEmpty {
                         Text("No shared data available.")
@@ -72,8 +64,8 @@ struct DataShareView: View {
                     } else {
                         List {
                             ForEach(sharedData, id: \.userName) { userData in
-                                Section(header: Text(userData.userName)) {
-                                    ForEach(userData.data) { item in
+                                Section(header: Text(userData.userName).font(.headline)) {
+                                    ForEach(userData.data, id: \.id) { item in
                                         VStack(alignment: .leading) {
                                             let typeDisplayName = dataTypeDisplayNames[item.type] ?? item.type
                                             let valueText = String(format: "%.2f", item.value)
@@ -90,9 +82,14 @@ struct DataShareView: View {
                     }
                 }
             }
-
             .onAppear {
-                fetchHealthDataQ() // 初回表示時にデータ取得
+                selectedGroupPublisher
+                            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
+                            .sink { _ in
+                                fetchData()
+                                print("fetchData called onAppear")
+                            }
+                            .store(in: &cancellables)
             }
 
             // エラーメッセージ
@@ -104,80 +101,23 @@ struct DataShareView: View {
         }
     }
 
-    // ヘルスデータの行ビュー
-    private func healthDataRow(item: HealthDataItem) -> some View {
-        VStack(alignment: .leading) {
-            let typeDisplayName = dataTypeDisplayNames[item.type] ?? item.type
-            let valueText = String(format: "%.2f", item.value)
-            Text("Type: \(typeDisplayName)")
-            Text("Value: \(valueText)")
-            Text("Date: \(item.date, formatter: dateFormatter)")
-        }
-    }
-
-    private func fetchHealthDataQ() {
-        // 現在のユーザーIDを取得
-        guard let userID = Auth.auth().currentUser?.uid else {
-            print("Error: No authenticated user.")
+    private func fetchData() {
+        print("データシェアビュー：Fetching shared data for group: \(selectedGroup)")
+        guard let currentUserID = firestoreManager.userID else {
+            self.errorMessage = "Failed to fetch shared data: User ID is nil."
             return
         }
 
-        // Firestoreリファレンスを作成
-        let healthDataRef = Firestore.firestore()
-            .collection("users")
-            .document(userID)
-            .collection("healthData")
-            .document("stepCount")
-            .collection("data")
-
-        // Firestoreからデータを取得
-        healthDataRef.getDocuments { snapshot, error in
-            if let error = error {
-                print("Error fetching health data: \(error.localizedDescription)")
-            } else {
-                print("Successfully fetched health data")
-                if let documents = snapshot?.documents {
-                    for document in documents {
-                        print("Document ID: \(document.documentID), Data: \(document.data())")
-                    }
-                } else {
-                    print("No documents found")
-                }
-            }
-        }
-    }
-
-    private func fetchData() {
-        fetchMyData()
-        fetchSharedData()
-    }
-
-    private func fetchMyData() {
-        firestoreManager.fetchMyHealthData { result in
+        firestoreManager.fetchSharedHealthData(for: currentUserID, groupID: selectedGroup) { result in
             DispatchQueue.main.async {
                 switch result {
-                case .success(let data):
-                    print("Fetched My Data: \(data)")
-                    print("Fetching MyData for userID: \(userID)")
-                    self.myData = data
-                case .failure(let error):
-                    self.errorMessage = "Failed to fetch my data: \(error.localizedDescription)"
-                    print("Error fetching MyData: \(error.localizedDescription)")
-                }
-            }
-        }
-    }
-
-    private func fetchSharedData() {
-        firestoreManager.fetchSharedHealthData(for: userID, groupID: selectedGroup) { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let data):
-                    self.sharedData = data.map { (key, value) in
-                        (userName: key, data: value)
-                    }
+                case .success(let userDataList):
+                    print("データシェアビュー：Fetched data: \(userDataList)") // デバッグ用ログ
+                    self.sharedData = userDataList
+                    self.errorMessage = userDataList.isEmpty ? "No shared data available for group \(self.selectedGroup)." : nil
                 case .failure(let error):
                     self.errorMessage = "Failed to fetch shared data: \(error.localizedDescription)"
+                    print("Error fetching data: \(error.localizedDescription)")
                 }
             }
         }
