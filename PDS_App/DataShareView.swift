@@ -24,12 +24,14 @@ struct DataShareView: View {
     @State private var cancellables: Set<AnyCancellable> = []
 
     let groupOptions: [String] = ["Family", "Friends", "Public"] // グループオプション
+
     let dataTypeDisplayNames: [String: String] = [
         "stepCount": "Steps",
         "distanceWalkingRunning": "Distance",
         "basalEnergyBurned": "Basal Energy",
         "activeEnergyBurned": "Active Energy"
     ]
+    let fixedDataTypeOrder: [String] = ["stepCount", "distanceWalkingRunning", "basalEnergyBurned", "activeEnergyBurned"]
     let dataTypeUnits: [String: String] = [
         "stepCount": "steps",
         "distanceWalkingRunning": "km",
@@ -215,7 +217,8 @@ struct DataShareView: View {
                                     .font(.headline)
                                     .padding(.bottom, 4)
 
-                                ForEach(Array(userData.totalData.keys.sorted()), id: \.self) { dataType in
+                                ForEach(Array(userData.totalData.keys.sorted()), id: \.self) {
+                                    dataType in
                                     if let value = userData.totalData[dataType] {
                                         HStack {
                                             let typeDisplayName = dataTypeDisplayNames[dataType] ?? dataType

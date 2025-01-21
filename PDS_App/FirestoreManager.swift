@@ -106,7 +106,7 @@ class FirestoreManager: ObservableObject {
         print("❤️ Fetching data from: \(twentyFourHoursAgo) to: \(now)")
 
         self.db.collection("users")
-            .whereField("role", isEqualTo: "Admin")
+            .whereField("role", isEqualTo: "me")
             .getDocuments { [weak self] snapshot, error in
                 guard let self = self else { return }
 
@@ -259,7 +259,7 @@ class FirestoreManager: ObservableObject {
      print("Starting fetchSharedHealthData with settings filtering for groupID: \(groupID)")
 
      self.db.collection("users")
-         .whereField("role", isEqualTo: "UU")
+         .whereField("role", isEqualTo: "others")
          .whereField("groups", arrayContains: groupID)
          .getDocuments { [weak self] snapshot, error in
              guard let self = self else { return }
