@@ -19,6 +19,7 @@
 		6F9B6D352D378F2600201EC3 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 6F9B6D342D378F2600201EC3 /* FirebaseAuth */; };
 		6F9B6D372D378F2600201EC3 /* FirebaseAuthCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = 6F9B6D362D378F2600201EC3 /* FirebaseAuthCombine-Community */; };
 		6FC0AE5F2D34CA3C00A9DABB /* Charts.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6FC0AE5E2D34CA3C00A9DABB /* Charts.framework */; };
+		6FC771362D3FEC1D00CA7BBF /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 6FC771352D3FEC1D00CA7BBF /* ZIPFoundation */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -103,6 +104,7 @@
 				6F9B6D352D378F2600201EC3 /* FirebaseAuth in Frameworks */,
 				6FC0AE5F2D34CA3C00A9DABB /* Charts.framework in Frameworks */,
 				6F6F26812D1551010062E9DF /* HealthKitUI.framework in Frameworks */,
+				6FC771362D3FEC1D00CA7BBF /* ZIPFoundation in Frameworks */,
 				6F39EC762D2CCF5200044D92 /* FirebaseAppDistribution-Beta in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -184,6 +186,7 @@
 				6F39EC8B2D2CEF7800044D92 /* FirebaseFirestore */,
 				6F9B6D342D378F2600201EC3 /* FirebaseAuth */,
 				6F9B6D362D378F2600201EC3 /* FirebaseAuthCombine-Community */,
+				6FC771352D3FEC1D00CA7BBF /* ZIPFoundation */,
 			);
 			productName = PDS_App;
 			productReference = 6FA58A162D14F2E1000EB4FF /* PDS_App.app */;
@@ -269,6 +272,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				6F39EC6C2D2CC4A800044D92 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				6FC771342D3FEC1D00CA7BBF /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6FA58A172D14F2E1000EB4FF /* Products */;
@@ -684,6 +688,14 @@
 				minimumVersion = 11.6.0;
 			};
 		};
+		6FC771342D3FEC1D00CA7BBF /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.19;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -724,6 +736,11 @@
 		6F9B6D362D378F2600201EC3 /* FirebaseAuthCombine-Community */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = "FirebaseAuthCombine-Community";
+		};
+		6FC771352D3FEC1D00CA7BBF /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6FC771342D3FEC1D00CA7BBF /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

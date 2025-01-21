@@ -6,6 +6,7 @@
 //
 import FirebaseFirestore
 import FirebaseCore
+import ZIPFoundation
 
 class FirestoreManager: ObservableObject {
     private let db: Firestore
@@ -31,6 +32,10 @@ class FirestoreManager: ObservableObject {
     //@Published var sharedData: [HealthDataItem] = []      // 他のユーザーのデータ - DataShareView
     @Published var sharedOthersData: [(userName: String, data: [HealthDataItem])] = []
     @Published var sharedMyData: [(userName: String, data: [HealthDataItem])] = []
+    @Published var exportProgress: Double = 0.0 // 進捗を通知
+        @Published var exportedFileURL: URL? = nil // 完了したファイルのURL
+        @Published var exportError: Error? = nil // エラー通知
+
 
 // ヘルスデータを取得 - ContentView
  func fetchHealthDataFirstTime(userID: String, completion: @escaping (Result<[HealthDataItem], Error>) -> Void) {
@@ -481,7 +486,304 @@ class FirestoreManager: ObservableObject {
         }
     }
 
+
+    /*func exportAndCompressHealthData(for userID: String, completion: @escaping (Result<URL, Error>) -> Void) {
+        let dataTypes = ["stepCount", "activeEnergyBurned", "distanceWalkingRunning", "basalEnergyBurned"]
+        var allFiles: [URL] = [] // 保存されたファイルのURLを保持
+        let dispatchGroup = DispatchGroup()
+
+        print("📊 Starting export for userID: \(userID)")
+
+        for dataType in dataTypes {
+            dispatchGroup.enter()
+            print("📊 Fetching \(dataType)")
+
+            let healthDataRef = db.collection("users")
+                .document(userID)
+                .collection("healthData")
+                .document(dataType)
+                .collection("data")
+
+            healthDataRef.getDocuments { snapshot, error in
+                defer { dispatchGroup.leave() } // 処理完了後にleaveを呼び出す
+                if let error = error {
+                    print("😭 Failed to fetch documents for \(dataType): \(error.localizedDescription)")
+                    return
+                }
+
+                guard let documents = snapshot?.documents else {
+                    print("😭 No documents found for \(dataType)")
+                    return
+                }
+
+                print("🙌 Fetched \(documents.count) documents for \(dataType)")
+
+                var allData: [[String: Any]] = []
+
+                for document in documents {
+                    allData.append(document.data())
+                }
+
+                // JSON形式で永続ディレクトリに保存
+                do {
+                    let jsonFileName = "\(dataType)_\(userID).json"
+                    let jsonData = try JSONSerialization.data(withJSONObject: allData, options: .prettyPrinted)
+                    guard let jsonFileURL = self.saveFileToDocumentsDirectory(data: jsonData, fileName: jsonFileName) else {
+                        print("🥺 Failed to save JSON file for \(dataType)")
+                        return
+                    }
+
+                    print("🥰 JSON file saved for \(dataType) at: \(jsonFileURL.path)")
+                    allFiles.append(jsonFileURL)
+                } catch {
+                    print("🥺 Failed to serialize JSON data for \(dataType): \(error.localizedDescription)")
+                }
+            }
+        }
+
+        // 全てのデータ取得処理が完了した後に圧縮処理
+        dispatchGroup.notify(queue: .main) {
+            print("📦 All data types fetched. Starting compression.")
+            self.compressFilesToZip(fileURLs: allFiles, zipFileName: "HealthData_\(userID).zip") { result in
+                switch result {
+                case .success(let archiveURL):
+                    print("🥰 All files compressed to: \(archiveURL.path)")
+                    completion(.success(archiveURL))
+                case .failure(let error):
+                    print("🥺 Failed to compress files: \(error.localizedDescription)")
+                    completion(.failure(error))
+                }
+            }
+        }
+    }*/
+
+    func exportAndCompressHealthData(for userID: String, completion: @escaping (Result<URL, Error>) -> Void) {
+        let dataTypes = ["stepCount", "activeEnergyBurned", "distanceWalkingRunning", "basalEnergyBurned"]
+        var allFiles: [URL] = [] // 保存されたファイルのURLを保持
+        let dispatchGroup = DispatchGroup()
+        let pageSize = 50 // 1ページあたりのドキュメント数
+
+        print("📊 Starting export for userID: \(userID)")
+
+        for dataType in dataTypes {
+            dispatchGroup.enter()
+            print("📊 Fetching \(dataType)")
+
+            var lastDocument: DocumentSnapshot? // 前回取得した最後のドキュメント
+            var allData: [[String: Any]] = []
+
+            func fetchNextPage() {
+                var query = db.collection("users")
+                    .document(userID)
+                    .collection("healthData")
+                    .document(dataType)
+                    .collection("data")
+                    .limit(to: pageSize)
+
+                if let lastDoc = lastDocument {
+                    query = query.start(afterDocument: lastDoc)
+                }
+
+                query.getDocuments { snapshot, error in
+                    if let error = error {
+                        print("😭 Failed to fetch documents for \(dataType): \(error.localizedDescription)")
+                        dispatchGroup.leave()
+                        return
+                    }
+
+                    guard let snapshot = snapshot else {
+                        print("😭 No documents found for \(dataType)")
+                        dispatchGroup.leave()
+                        return
+                    }
+
+                    print("🙌 Fetched \(snapshot.documents.count) documents for \(dataType)")
+
+                    for document in snapshot.documents {
+                        allData.append(document.data())
+                    }
+
+                    if let lastDoc = snapshot.documents.last {
+                        lastDocument = lastDoc
+                        if snapshot.documents.count == pageSize {
+                            // 次のページを取得
+                            fetchNextPage()
+                            return
+                        }
+                    }
+
+                    // 全ページのデータを取得した後、JSONに保存
+                    do {
+                        let jsonFileName = "\(dataType)_\(userID).json"
+                        let jsonData = try JSONSerialization.data(withJSONObject: allData, options: .prettyPrinted)
+                        guard let jsonFileURL = self.saveFileToDocumentsDirectory(data: jsonData, fileName: jsonFileName) else {
+                            print("🥺 Failed to save JSON file for \(dataType)")
+                            dispatchGroup.leave()
+                            return
+                        }
+
+                        print("🥰 JSON file saved for \(dataType) at: \(jsonFileURL.path)")
+                        allFiles.append(jsonFileURL)
+                        dispatchGroup.leave()
+                    } catch {
+                        print("🥺 Failed to serialize JSON data for \(dataType): \(error.localizedDescription)")
+                        dispatchGroup.leave()
+                    }
+                }
+            }
+
+            fetchNextPage() // 最初のページを取得
+        }
+
+        // 全てのデータ取得処理が完了した後に圧縮処理
+        dispatchGroup.notify(queue: .main) {
+            print("📦 All data types fetched. Starting compression.")
+            self.compressFilesToZip(fileURLs: allFiles, zipFileName: "HealthData_\(userID).zip") { result in
+                switch result {
+                case .success(let archiveURL):
+                    print("🥰 All files compressed to: \(archiveURL.path)")
+                    completion(.success(archiveURL))
+                case .failure(let error):
+                    print("🥺 Failed to compress files: \(error.localizedDescription)")
+                    completion(.failure(error))
+                }
+            }
+        }
+    }
+
+
+    // JSONファイルを保存するメソッド
+    private func saveFileToDocumentsDirectory(data: Data, fileName: String) -> URL? {
+        let fileManager = FileManager.default
+        guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            print("Failed to access documents directory")
+            return nil
+        }
+        let fileURL = documentsDirectory.appendingPathComponent(fileName)
+        do {
+            try data.write(to: fileURL)
+            return fileURL
+        } catch {
+            print("Failed to save file: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    // 複数ファイルをZIP形式で圧縮するメソッド
+    private func compressFilesToZip(fileURLs: [URL], zipFileName: String, completion: @escaping (Result<URL, Error>) -> Void) {
+        do {
+            // ドキュメントディレクトリを取得
+            guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                throw NSError(domain: "FileError", code: 500, userInfo: [NSLocalizedDescriptionKey: "Failed to access documents directory"])
+            }
+
+            // ZIPファイルのパスを作成
+            let zipFileURL = documentsDirectory.appendingPathComponent(zipFileName)
+
+            // 既存のZIPファイルがあれば削除
+            if FileManager.default.fileExists(atPath: zipFileURL.path) {
+                try FileManager.default.removeItem(at: zipFileURL)
+            }
+
+            // ZIPアーカイブを作成
+            let zipArchive = Archive(url: zipFileURL, accessMode: .create)!
+
+            // 各ファイルを圧縮してZIPに追加
+            for fileURL in fileURLs {
+                do {
+                    // 元のファイルデータを取得
+                    let data = try Data(contentsOf: fileURL)
+
+                    // 圧縮データを作成 (zlib圧縮)
+                    let compressedData = try (data as NSData).compressed(using: .zlib)
+
+                    // 一時ファイルに圧縮データを保存
+                    let compressedFileURL = documentsDirectory.appendingPathComponent(fileURL.lastPathComponent + ".compressed")
+                    try compressedData.write(to: compressedFileURL)
+
+                    // ZIPアーカイブに追加
+                    try zipArchive.addEntry(with: fileURL.lastPathComponent, fileURL: compressedFileURL, compressionMethod: .deflate)
+
+                    // 一時ファイルを削除
+                    try FileManager.default.removeItem(at: compressedFileURL)
+                } catch {
+                    print("Failed to process file \(fileURL.lastPathComponent): \(error.localizedDescription)")
+                    throw error
+                }
+            }
+
+            print("📦 ZIP file created at: \(zipFileURL.path)")
+            completion(.success(zipFileURL))
+        } catch {
+            print("Failed to create ZIP file: \(error.localizedDescription)")
+            completion(.failure(error))
+        }
+    }
+
+
+    // 複数のファイルをZIP形式で圧縮
+    /*private func compressFiles(fileURLs: [URL], archiveFileName: String, completion: @escaping (Result<URL, Error>) -> Void) {
+        guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            completion(.failure(NSError(domain: "FileError", code: 500, userInfo: [NSLocalizedDescriptionKey: "Failed to access documents directory"])))
+            return
+        }
+
+        let archiveURL = documentsDirectory.appendingPathComponent(archiveFileName)
+
+        do {
+            let archive = try FileManager.default.createDirectoryContents(atPath: archiveURL.path)
+            for fileURL in fileURLs {
+                let fileName = fileURL.lastPathComponent
+                try archive.addFile(at: fileURL, filename: fileName)
+            }
+
+            try archive.close()
+            completion(.success(archiveURL))
+        } catch {
+            completion(.failure(error))
+        }
+    }*/
+
+    /*private func saveFileToDocumentsDirectory(data: Data, fileName: String) -> URL? {
+            let fileManager = FileManager.default
+            guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                print("🥲📄 Failed to access documents directory")
+                return nil
+            }
+            let fileURL = documentsDirectory.appendingPathComponent(fileName)
+            do {
+                try data.write(to: fileURL)
+                return fileURL
+            } catch {
+                print("🥲📁 Failed to save file: \(error.localizedDescription)")
+                return nil
+            }
+        }*/
+
+    // Fixed compression method
+       /* private func compressFile(at sourceURL: URL, fileName: String, completion: @escaping (Result<URL, Error>) -> Void) {
+            do {
+                let data = try Data(contentsOf: sourceURL)
+
+                // Use compression level
+                let compressedData = try (data as NSData).compressed(using: .zlib)
+
+                guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                    throw NSError(domain: "FileError", code: 500, userInfo: [NSLocalizedDescriptionKey: "Failed to access documents directory"])
+                }
+
+                let compressedFileURL = documentsDirectory.appendingPathComponent(fileName)
+
+                try compressedData.write(to: compressedFileURL)
+
+                completion(.success(compressedFileURL))
+            } catch {
+                completion(.failure(error))
+            }
+        }*/
 }
+
+
 
 struct HealthDataItem: Identifiable, Equatable {
     let id: String

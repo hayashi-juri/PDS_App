@@ -22,6 +22,7 @@ struct DataShareView: View {
     @State private var selectedGroupPublisher = PassthroughSubject<String, Never>()
     // デバウンス処理用のキャンセラ
     @State private var cancellables: Set<AnyCancellable> = []
+    @State private var isShowingExportView = false
 
     let groupOptions: [String] = ["Family", "Friends", "Public"] // グループオプション
 
@@ -44,6 +45,14 @@ struct DataShareView: View {
             Text("Data Sharing")
                 .font(.title)
                 .padding()
+            
+            Button("Export My Data") {
+                isShowingExportView = true
+            }
+            .padding()
+            .sheet(isPresented: $isShowingExportView) {
+                ExportHealthDataView(firestoreManager: firestoreManager, userID: userID)
+            }
 
             // グループ選択
             Picker("Select Group", selection: $selectedGroup) {
@@ -59,151 +68,6 @@ struct DataShareView: View {
             .onChange(of: selectedGroup) { newValue in
                 selectedGroupPublisher.send(newValue)
             }
-            /*Form {
-
-             Section(header: Text("Shared My Data")) {
-             if sharedMyData.isEmpty {
-             Text("No shared data available.")
-             .foregroundColor(.gray)
-             } else {
-             ScrollView {
-             VStack(spacing: 16) {
-             ForEach(sharedMyData, id: \.userName) { userData in
-             VStack(alignment: .leading, spacing: 8) {
-             Text(userData.userName)
-             .font(.headline)
-             .padding(.bottom, 4)
-
-             VStack(alignment: .leading, spacing: 4) {
-             ForEach(userData.data, id: \.id) { item in
-             HStack {
-             let typeDisplayName = dataTypeDisplayNames[item.type] ?? item.type
-             let valueText = String(format: "%.0f", item.value)
-             let unit = dataTypeUnits[item.type] ?? ""
-
-             Text("\(typeDisplayName):")
-             Spacer()
-             Text("\(valueText) \(unit)")
-             Text("Date: \(item.date, formatter: dateFormatter)")
-             .font(.footnote)
-             .foregroundColor(.gray)
-             }
-             }
-             }
-             }
-             .padding()
-             }
-             }
-             }
-             }
-             }
-             Section(header: Text("Shared Others Data")) {
-             if sharedOthersData.isEmpty {
-             Text("No shared data available.")
-             .foregroundColor(.gray)
-             } else {
-             ScrollView {
-             VStack(spacing: 16) {
-             ForEach(sharedOthersData, id: \.userName) { userData in
-             VStack(alignment: .leading, spacing: 8) {
-             Text(userData.userName)
-             .font(.headline)
-             .padding(.bottom, 4)
-
-             VStack(alignment: .leading, spacing: 4) {
-             ForEach(userData.data, id: \.id) { item in
-             HStack {
-             let typeDisplayName = dataTypeDisplayNames[item.type] ?? item.type
-             let valueText = String(format: "%.0f", item.value)
-             let unit = dataTypeUnits[item.type] ?? ""
-
-             Text("\(typeDisplayName):")
-             Spacer()
-             Text("\(valueText) \(unit)")
-             Text("Date: \(item.date, formatter: dateFormatter)")
-             .font(.footnote)
-             .foregroundColor(.gray)
-             }
-             }
-             }
-             .padding()
-             }
-             .padding()
-             }
-             }
-             }
-             }
-             }
-             }*/
-
-            /*Form {
-                Section(header: Text("My Data (Last 24 Hours)")) {
-                    if sharedMyData.isEmpty {
-                        Text("No shared data available.")
-                            .foregroundColor(.gray)
-                    }
-                    else {
-                        ForEach(sharedMyData, id: \.userName) { userData in
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(userData.userName)
-                                    .font(.headline)
-                                    .padding(.bottom, 4)
-
-                                ForEach(Array(userData.totalData.keys.sorted()), id: \.self) { dataType in
-                                    if let value = userData.totalData[dataType] {
-                                        HStack {
-                                            let typeDisplayName = dataTypeDisplayNames[dataType] ?? dataType
-                                            let valueText = String(format: "%.0f", value)
-                                            let unit = dataTypeUnits[dataType] ?? ""
-
-                                            Text("\(typeDisplayName):")
-                                            Spacer()
-                                            Text("\(valueText) \(unit)")
-                                            Text("Date: \(item.date, formatter: dateFormatter)")
-                                            .font(.footnote)
-                                            .foregroundColor(.gray)
-
-                                        }
-                                    }
-                                }
-                            }
-                            .padding(.vertical, 8)
-                        }
-                    }
-                }
-
-                Section(header: Text("Others' Data")) {
-                    if sharedOthersData.isEmpty {
-                        Text("No shared data available.")
-                            .foregroundColor(.gray)
-                    } else {
-                        ForEach(sharedOthersData, id: \.userName) { userData in
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(userData.userName)
-                                    .font(.headline)
-                                    .padding(.bottom, 4)
-
-                                ForEach(userData.data, id: \.id) { item in
-                                    HStack {
-                                        let typeDisplayName = dataTypeDisplayNames[item.type] ?? item.type
-                                        let valueText = String(format: "%.0f", item.value)
-                                        let unit = dataTypeUnits[item.type] ?? ""
-
-                                        Text("\(typeDisplayName):")
-                                        Spacer()
-                                        Text("\(valueText) \(unit)")
-                                        Text("Date: \(item.date, formatter: dateFormatter)")
-                                        .font(.footnote)
-                                        .foregroundColor(.gray)
-
-                                    }
-                                }
-                            }
-                            .padding(.vertical, 8)
-                        }
-                    }
-                }
-            }*/
 
             Form {
                 Section(header: Text("My Data (Last 24 Hours)")) {
