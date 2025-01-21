@@ -11,41 +11,52 @@ import FirebaseFirestore
 import Firebase
 import FirebaseAppCheck*/
 
+//user123@test.com, User123
+// ususalemail, pds123
+
 import SwiftUI
 import FirebaseCore
 import FirebaseAppCheck
+import FirebaseAuth
 
-class YourSimpleAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
-  func createProvider(with app: FirebaseApp) -> AppCheckProvider? {
-    return AppAttestProvider(app: app)
-  }
-}
+/*class YourSimpleAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
+    func createProvider(with app: FirebaseApp) -> AppCheckProvider? {
+        return AppAttestProvider(app: app)
+    }
+}*/
 
 class AppDelegate: NSObject, UIApplicationDelegate {
-  func application(_ application: UIApplication,
-                   didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+            
+        // Firebase を初期化
+        FirebaseApp.configure()
+        print("FirebaseApp.configure() called")
 
-      // AppCheck Provider を登録
-      //let providerFactory = YourSimpleAppCheckProviderFactory()
-      //AppCheck.setAppCheckProviderFactory(providerFactory)
+        FirebaseConfiguration.shared.setLoggerLevel(.debug)
+        print("Firebase configured successfully.")
 
-      // Firebase を初期化
-      FirebaseApp.configure()
-
-      return true
-  }
+        return true
+    }
 }
 
 @main
 struct PDS_AppApp: App {
-    // register app delegate for Firebase setup
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    private let firestoreManager = FirestoreManager() // Firestoreの操作を管理
-    private let healthKitManager = HealthKitManager() // HealthKitの操作を管理
+
+    @StateObject private var authManager = AuthManager.shared
+    @StateObject private var firestoreManager = FirestoreManager(authManager: AuthManager.shared)
+    @StateObject private var healthKitManager = HealthKitManager(authManager: AuthManager.shared)
 
     var body: some Scene {
         WindowGroup {
-            ContentView(firestoreManager: firestoreManager, healthKitManager: healthKitManager)
+            ContentView(
+                authManager: authManager,
+                firestoreManager: firestoreManager,
+                healthKitManager: healthKitManager
+            )
         }
     }
 }
+
