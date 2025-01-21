@@ -146,7 +146,8 @@ struct VisualizeView: View {
                 }
             }
             .onAppear {
-                fetchStepCountData()
+                //fetchStepCountData()
+                print("visual view called")
             }
         }
     }
