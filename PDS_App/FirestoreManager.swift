@@ -656,10 +656,6 @@ class FirestoreManager: ObservableObject {
                 try FileManager.default.removeItem(at: zipFileURL)
             }
 
-            /*guard let archive = Archive(url: zipFileURL, accessMode: .create) else {
-                throw NSError(domain: "ZIPError", code: 500, userInfo: [NSLocalizedDescriptionKey: "Failed to create ZIP archive"])
-            }*/
-
             do {
                 let archive = try Archive(url: zipFileURL, accessMode: .create)
                 for fileURL in fileURLs {
@@ -670,10 +666,6 @@ class FirestoreManager: ObservableObject {
                 print("❌ Failed to create ZIP: \(error.localizedDescription)")
                 completion(.failure(error))
             }
-
-            /*for fileURL in fileURLs {
-                try archive.addEntry(with: fileURL.lastPathComponent, fileURL: fileURL)
-            }*/
 
             completion(.success(zipFileURL))
         } catch {

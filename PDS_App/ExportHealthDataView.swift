@@ -56,36 +56,6 @@ struct ExportHealthDataView: View {
 
         }
         .padding()
-        /*.sheet(isPresented: $showingShareSheet) {
-            if let fileToShare = fileToShare {
-                ShareSheet(fileURL: fileToShare)
-            }
-        }
-        .sheet(isPresented: $showingDocumentPicker) {
-            if let fileToShare = fileToShare {
-                DocumentPicker(fileURL: fileToShare)
-            }
-        }*/
-    }
-
-    /*private func exportData() {
-        isExporting = true
-        exportResultMessage = nil
-
-        firestoreManager.exportAndCompressHealthData(for: userID) { result in
-            DispatchQueue.main.async {
-                isExporting = false
-                switch result {
-                case .success(let fileURL):
-                    exportResultMessage = "👌 Export complete: \(fileURL.lastPathComponent)"
-                    fileToShare = fileURL
-                    showingShareSheet = true
-                case .failure(let error):
-                    exportResultMessage = "🥺 Error: \(error.localizedDescription)"
-                }
-            }
-        }
-    }*/
 
     private func exportData() {
             isExporting = true
