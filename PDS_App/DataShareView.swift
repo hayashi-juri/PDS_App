@@ -65,7 +65,7 @@ struct DataShareView: View {
             /*.onReceive(Just(selectedGroup)) { _ in
              fetchData()
              }*/
-            .onChange(of: selectedGroup) { newValue in
+            .onChange(of: selectedGroup) { oldValue, newValue in
                 selectedGroupPublisher.send(newValue)
             }
 

@@ -129,7 +129,14 @@ struct SettingView: View {
 
             NavigationView {
                 Form {
-                    Section(header: Text("Groups")) {
+
+                    Section(header: Text("Other User Settings")) {
+                        NavigationLink("Manage Other User Settings") {
+                            SettingForOtherUserView(firestoreManager: firestoreManager)
+                        }
+                    }
+
+                    Section(header: Text("Groups Sharing Settings")) {
                         Picker("Please select a group", selection: $groupSelection) {
                             Text("Family").tag("Family")
                             Text("Friends").tag("Friends")

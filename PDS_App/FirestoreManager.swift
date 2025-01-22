@@ -8,17 +8,19 @@ import FirebaseFirestore
 import FirebaseCore
 import ZIPFoundation
 
+// smaple@example.com
+
 class FirestoreManager: ObservableObject {
-    private let db: Firestore
+    let db: Firestore
     private let authManager: AuthManager
 
     init(authManager: AuthManager) {
-            guard let app = FirebaseApp.app() else {
-                fatalError("FirebaseApp is not configured. Call FirebaseApp.configure() before initializing FirestoreManager.")
-            }
-            self.db = Firestore.firestore(app: app)
-            self.authManager = authManager
+        guard let app = FirebaseApp.app() else {
+            fatalError("FirebaseApp is not configured. Call FirebaseApp.configure() before initializing FirestoreManager.")
         }
+        self.db = Firestore.firestore(app: app)
+        self.authManager = authManager
+    }
 
     // 公開された userID プロパティ
     var userID: String? {
@@ -33,22 +35,22 @@ class FirestoreManager: ObservableObject {
     @Published var sharedOthersData: [(userName: String, data: [HealthDataItem])] = []
     @Published var sharedMyData: [(userName: String, data: [HealthDataItem])] = []
     @Published var exportProgress: Double = 0.0 // 進捗を通知
-        @Published var exportedFileURL: URL? = nil // 完了したファイルのURL
-        @Published var exportError: Error? = nil // エラー通知
+    @Published var exportedFileURL: URL? = nil // 完了したファイルのURL
+    @Published var exportError: Error? = nil // エラー通知
 
 
-// ヘルスデータを取得 - ContentView
- func fetchHealthDataFirstTime(userID: String, completion: @escaping (Result<[HealthDataItem], Error>) -> Void) {
-     let collectionRef = db.collection("users").document(userID).collection("healthData")
-     collectionRef.getDocuments { snapshot, error in
-         if let error = error {
-             completion(.failure(error))
-             return
-         }
-         let data = snapshot?.documents.compactMap { HealthDataItem(document: $0) } ?? []
-         completion(.success(data))
-     }
- }
+    // ヘルスデータを取得 - ContentView
+    func fetchHealthDataFirstTime(userID: String, completion: @escaping (Result<[HealthDataItem], Error>) -> Void) {
+        let collectionRef = db.collection("users").document(userID).collection("healthData")
+        collectionRef.getDocuments { snapshot, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            let data = snapshot?.documents.compactMap { HealthDataItem(document: $0) } ?? []
+            completion(.success(data))
+        }
+    }
 
     // ヘルスデータを保存するメソッド
     func saveHealthDataByType(userID: String, healthData: [[String: Any]], completion: @escaping (Result<Void, Error>) -> Void) {
@@ -158,9 +160,9 @@ class FirestoreManager: ObservableObject {
                         // 設定データの取得と解析
                         var healthDataSettings: [String: Bool] = [:]
                         var isAnonymous = false
-                        var anonymousName: String?
+                        //var anonymousName: String?
                         var displayName: String = userName
-
+                        
                         if let settingsData = settingsSnapshot?.data() {
                             healthDataSettings = settingsData["healthDataSettings"] as? [String: Bool] ?? [:]
                             isAnonymous = settingsData["isAnonymous"] as? Bool ?? false
@@ -255,148 +257,167 @@ class FirestoreManager: ObservableObject {
 
 
 
-    // MARK: 他のユーザーのデータを取得（UUロール限定）
+    // MARK: 他のユーザーのデータを取得（shared_userロール限定）
     func fetchSharedHealthData(for currentUserID: String, groupID: String, completion: @escaping (Result<[(userName: String, data: [HealthDataItem])], Error>) -> Void) {
-     let group = DispatchGroup()
-     var results: [(userName: String, data: [HealthDataItem])] = []
-     var fetchError: Error?
+        let group = DispatchGroup()
+        var results: [(userName: String, data: [HealthDataItem])] = []
+        var fetchError: Error?
 
-     print("Starting fetchSharedHealthData with settings filtering for groupID: \(groupID)")
+        print("Starting fetchSharedHealthData with settings filtering for groupID: \(groupID)")
 
-     self.db.collection("users")
-         .whereField("role", isEqualTo: "others")
-         .whereField("groups", arrayContains: groupID)
-         .getDocuments { [weak self] snapshot, error in
-             guard let self = self else { return }
+        self.db.collection("users")
+            .whereField("role", isEqualTo: "shared_user")
+            .whereField("groups", arrayContains: groupID)
+            .getDocuments { [weak self] snapshot, error in
+                guard let self = self else { return }
 
-             if let error = error {
-                 print("❌ Error fetching users: \(error.localizedDescription)")
-                 completion(.failure(error))
-                 return
-             }
+                if let error = error {
+                    print("❌ Error fetching users: \(error.localizedDescription)")
+                    completion(.failure(error))
+                    return
+                }
 
-             guard let documents = snapshot?.documents, !documents.isEmpty else {
-                 print("ℹ️ No users found for group \(groupID)")
-                 completion(.success([]))
-                 return
-             }
+                guard let documents = snapshot?.documents, !documents.isEmpty else {
+                    print("ℹ️ No users found for group \(groupID)")
+                    completion(.success([]))
+                    return
+                }
 
-             print("📝 Found \(documents.count) users in group")
+                print("📝 Found \(documents.count) users in group")
 
-             let dataTypes = ["stepCount", "activeEnergyBurned", "distanceWalkingRunning", "basalEnergyBurned"]
+                let dataTypes = ["stepCount", "activeEnergyBurned", "distanceWalkingRunning", "basalEnergyBurned"]
 
-             for document in documents {
-                 group.enter()
+                for document in documents {
+                    group.enter()
 
-                 guard let userName = document.data()["name"] as? String else {
-                     print("❌ Missing name for user document: \(document.documentID)")
-                     group.leave()
-                     continue
-                 }
+                    guard let userName = document.data()["name"] as? String else {
+                        print("❌ Missing name for user document: \(document.documentID)")
+                        group.leave()
+                        continue
+                    }
 
-                 let otherUserID = document.documentID
-                 print("🔍 Processing data for user: \(userName) (ID: \(otherUserID))")
+                    let otherUserID = document.documentID
+                    print("🔍 Processing data for user: \(userName) (ID: \(otherUserID))")
 
-                 // まずユーザーの設定を取得
-                 let settingsRef = self.db.collection("users")
-                     .document(otherUserID)
-                     .collection("settings")
-                     .document(groupID)
+                    // まずユーザーの設定を取得
+                    let settingsRef = self.db.collection("users")
+                        .document(otherUserID)
+                        .collection("settings")
+                        .document(groupID)
 
-                 settingsRef.getDocument { settingsSnapshot, settingsError in
-                     if let settingsError = settingsError {
-                         print("⚠️ Error fetching settings for \(userName): \(settingsError.localizedDescription)")
-                         group.leave()
-                         return
-                     }
+                    settingsRef.getDocument { settingsSnapshot, settingsError in
+                        if let settingsError = settingsError {
+                            print("⚠️ Error fetching settings for \(userName): \(settingsError.localizedDescription)")
+                            group.leave()
+                            return
+                        }
 
-                     // 設定データの取得と解析
-                     var healthDataSettings: [String: Bool] = [:]
-                     var isAnonymous = false
-                     var anonymousName: String?
+                        // 設定データの取得と解析
+                        var healthDataSettings: [String: Bool] = [:]
+                        var isAnonymous = false
+                        var anonymousName: String?
+                        var deletionDate: Date?
 
-                     if let settingsData = settingsSnapshot?.data() {
-                         healthDataSettings = settingsData["healthDataSettings"] as? [String: Bool] ?? [:]
-                         isAnonymous = settingsData["isAnonymous"] as? Bool ?? false
-                         print("📋 Settings found for \(userName): \(healthDataSettings)")
+                        if let settingsData = settingsSnapshot?.data() {
+                            healthDataSettings = settingsData["healthDataSettings"] as? [String: Bool] ?? [:]
+                            isAnonymous = settingsData["isAnonymous"] as? Bool ?? false
+                            print("📋 Settings found for \(userName): \(healthDataSettings)")
 
-                         if isAnonymous {
-                             if let anonymousName = settingsData["userNameForAnonymous"] as? String {
-                                 print("✅ Anonymous user detected: \(anonymousName)")
-                             } else {
-                                 print("ℹ️ Anonymous user detected, but no anonymous name set. Using default.")
-                             }
-                         } else {
-                             print("👤 Regular user detected: \(userName)")
-                         }
-                     } else {
-                         print("ℹ️ No settings found for \(userName), using default (all shared)")
-                         // デフォルトですべてのデータタイプを共有可能とする
-                         for dataType in dataTypes {
-                             healthDataSettings[dataType] = true
-                         }
-                     }
+                            if isAnonymous {
+                                if let anonymousName = settingsData["userNameForAnonymous"] as? String {
+                                    print("✅ Anonymous user detected: \(anonymousName)")
+                                } else {
+                                    print("ℹ️ Anonymous user detected, but no anonymous name set. Using default.")
+                                }
+                            } else {
+                                print("👤 Regular user detected: \(userName)")
+                            }
 
-                     var userHealthData: [HealthDataItem] = []
-                     let userGroup = DispatchGroup()
+                            if let deletionDateString = settingsData["deletionDate"] as? String {
+                                let formatter = ISO8601DateFormatter()
+                                deletionDate = formatter.date(from: deletionDateString)
+                                print("🗓️ delation date is \(String(describing: deletionDate))")
+                            }
 
-                     // 設定に基づいてデータタイプをフィルタリング
-                     for dataType in dataTypes {
-                         // 設定で共有が許可されているデータタイプのみ取得
-                         guard healthDataSettings[dataType] == true else {
-                             print("🔒 Skipping \(dataType) for \(userName) due to settings")
-                             continue
-                         }
+                        } else {
+                            print("ℹ️ No settings found for \(userName), using default (all shared)")
+                            // デフォルトですべてのデータタイプを共有可能とする
+                            for dataType in dataTypes {
+                                healthDataSettings[dataType] = true
+                            }
+                        }
 
-                         userGroup.enter()
-                         print("📊 Fetching \(dataType) for \(userName)")
+                        var userHealthData: [HealthDataItem] = []
+                        let userGroup = DispatchGroup()
 
-                         let healthDataRef = self.db.collection("users")
-                             .document(otherUserID)
-                             .collection("healthData")
-                             .document(dataType)
-                             .collection("data")
+                        // 設定に基づいてデータタイプをフィルタリング
+                        for dataType in dataTypes {
+                            // 設定で共有が許可されているデータタイプのみ取得
+                            guard healthDataSettings[dataType] == true else {
+                                print("🔒 Skipping \(dataType) for \(userName) due to settings")
+                                continue
+                            }
 
-                         healthDataRef.getDocuments { healthSnapshot, healthError in
-                             defer { userGroup.leave() }
+                            userGroup.enter()
+                            print("📊 Fetching \(dataType) for \(userName)")
 
-                             if let healthError = healthError {
-                                 print("❌ Error fetching \(dataType) for \(userName): \(healthError.localizedDescription)")
-                                 fetchError = healthError
-                                 return
-                             }
+                            let healthDataRef = self.db.collection("users")
+                                .document(otherUserID)
+                                .collection("healthData")
+                                .document(dataType)
+                                .collection("data")
 
-                             if let documents = healthSnapshot?.documents {
-                                 print("✅ Fetched \(documents.count) \(dataType) records for \(userName)")
-                                 let data = documents.compactMap { HealthDataItem(document: $0) }
-                                 userHealthData.append(contentsOf: data)
-                             }
-                         }
-                     }
+                            healthDataRef.getDocuments { healthSnapshot, healthError in
+                                defer { userGroup.leave() }
 
-                     // 各ユーザーのデータ取得完了時
-                     // 各ユーザーのデータ取得完了時
-                     userGroup.notify(queue: .main) {
-                         let displayName = isAnonymous ? (anonymousName ?? "Anonymous User") : userName
-                         print("⭐️ 現在：Appending data for user \(displayName) with \(userHealthData.count) items")
-                         results.append((userName: userName, data: userHealthData))
-                         group.leave()
-                     }
-                 }
-             }
+                                if let healthError = healthError {
+                                    print("❌ Error fetching \(dataType) for \(userName): \(healthError.localizedDescription)")
+                                    fetchError = healthError
+                                    return
+                                }
+//test01@example.com
+                                if let documents = healthSnapshot?.documents {
+                                    print("✅ Fetched \(documents.count) \(dataType) records for \(userName)")
 
-             // 全ユーザーのデータ取得完了時
-             group.notify(queue: .main) {
-                 print("🏁 All data fetching completed. Total results: \(results.count)")
-                 if let fetchError = fetchError {
-                     completion(.failure(fetchError))
-                 } else {
-                     completion(.success(results))
-                 }
-             }
-         }
- }
-    // ユーザー設定の保存
+                                    let filteredDocuments = documents.filter { doc in
+                                        if let deletionDate = deletionDate {
+                                            if let dateString = doc.data()["date"] as? String,
+                                               let dataDate = ISO8601DateFormatter().date(from: dateString) {
+                                                return dataDate < deletionDate
+                                            }
+                                            print("✅ Document excluded due to deletionDate")
+                                        }
+                                        return true
+                                    }
+
+                                    let data = documents.compactMap { HealthDataItem(document: $0) }
+                                    userHealthData.append(contentsOf: data)
+                                }
+                            }
+                        }
+                        // 各ユーザーのデータ取得完了時
+                        userGroup.notify(queue: .main) {
+                            let displayName = isAnonymous ? (anonymousName ?? "Anonymous User") : userName
+                            print("⭐️ 現在：Appending data for user \(displayName) with \(userHealthData.count) items")
+                            results.append((userName: userName, data: userHealthData))
+                            group.leave()
+                        }
+                    }
+                }
+
+                // 全ユーザーのデータ取得完了時
+                group.notify(queue: .main) {
+                    print("🏁 All data fetching completed. Total results: \(results.count)")
+                    if let fetchError = fetchError {
+                        completion(.failure(fetchError))
+                    } else {
+                        completion(.success(results))
+                    }
+                }
+            }
+    }
+
+    // ユーザー設定の保存 - SettingView
     func saveUserSettings(
         userID: String,
         groupID: String,
@@ -447,7 +468,7 @@ class FirestoreManager: ObservableObject {
         }
     }
 
-    // 歩数データをサブコレクションから取得
+    // 歩数データをサブコレクションから取得 - VisualizeView
     func fetchStepCountDataFromSubcollection(userID: String, dataType: String, completion: @escaping (Result<[HealthDataItem], Error>) -> Void) {
         // Firestoreクエリの参照を作成
         let collectionRef = db.collection("users")
@@ -486,91 +507,89 @@ class FirestoreManager: ObservableObject {
         }
     }
 
+    // MARK: 自身の全てのヘルスデータを　mascine readable　な形式で取得
+    private func processFirestoreData(_ data: [[String: Any]]) throws -> Data {
+        let entries = try data.map { try HealthDataEntry(from: $0) }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return try encoder.encode(entries)
+    }
 
-    /*func exportAndCompressHealthData(for userID: String, completion: @escaping (Result<URL, Error>) -> Void) {
-        let dataTypes = ["stepCount", "activeEnergyBurned", "distanceWalkingRunning", "basalEnergyBurned"]
-        var allFiles: [URL] = [] // 保存されたファイルのURLを保持
-        let dispatchGroup = DispatchGroup()
+    private func saveHealthDataToJSON(documents: [QueryDocumentSnapshot], type: String, userID: String) throws -> URL {
+        let data = documents.map { $0.data() }
+        let jsonData = try processFirestoreData(data)
+        let fileName = "\(type)_\(userID).json"
+        guard let fileURL = saveFileToDocumentsDirectory(data: jsonData, fileName: fileName) else {
+            throw NSError(domain: "FileError", code: 500, userInfo: [NSLocalizedDescriptionKey: "Failed to save file"])
+        }
 
-        print("📊 Starting export for userID: \(userID)")
+        if let jsonString = String(data: jsonData.prefix(200), encoding: .utf8) {
+            print("🔍 JSON Preview for \(type): \(jsonString)...")
+        }
 
-        for dataType in dataTypes {
-            dispatchGroup.enter()
-            print("📊 Fetching \(dataType)")
+        print("💾 JSON file saved for \(type) at: \(fileURL.path)")
+        return fileURL
+    }
 
-            let healthDataRef = db.collection("users")
-                .document(userID)
-                .collection("healthData")
-                .document(dataType)
-                .collection("data")
+    private func saveFileToDocumentsDirectory(data: Data, fileName: String) -> URL? {
+        let fileManager = FileManager.default
+        guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            print("❌ Failed to access documents directory")
+            return nil
+        }
 
-            healthDataRef.getDocuments { snapshot, error in
-                defer { dispatchGroup.leave() } // 処理完了後にleaveを呼び出す
+        let fileURL = documentsDirectory.appendingPathComponent(fileName)
+        do {
+            if fileManager.fileExists(atPath: fileURL.path) {
+                try fileManager.removeItem(at: fileURL)
+            }
+            try data.write(to: fileURL, options: .atomic)
+            print("📁 Documents Directory: \(documentsDirectory.path)")
+            return fileURL
+        } catch {
+            print("❌ Failed to save file '\(fileName)': \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    func saveSplitJSONToFirestore(jsonData: Data, collectionName: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        do {
+            // JSONデータをデコード
+            guard let jsonArray = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [[String: Any]] else {
+                throw NSError(domain: "DecodingError", code: 400, userInfo: [NSLocalizedDescriptionKey: "Failed to decode JSON"])
+            }
+
+            let batch = db.batch()
+            let collectionRef = db.collection(collectionName)
+
+            for (index, entry) in jsonArray.enumerated() {
+                let documentRef = collectionRef.document("entry_\(index)")
+                batch.setData(entry, forDocument: documentRef)
+            }
+
+            batch.commit { error in
                 if let error = error {
-                    print("😭 Failed to fetch documents for \(dataType): \(error.localizedDescription)")
-                    return
-                }
-
-                guard let documents = snapshot?.documents else {
-                    print("😭 No documents found for \(dataType)")
-                    return
-                }
-
-                print("🙌 Fetched \(documents.count) documents for \(dataType)")
-
-                var allData: [[String: Any]] = []
-
-                for document in documents {
-                    allData.append(document.data())
-                }
-
-                // JSON形式で永続ディレクトリに保存
-                do {
-                    let jsonFileName = "\(dataType)_\(userID).json"
-                    let jsonData = try JSONSerialization.data(withJSONObject: allData, options: .prettyPrinted)
-                    guard let jsonFileURL = self.saveFileToDocumentsDirectory(data: jsonData, fileName: jsonFileName) else {
-                        print("🥺 Failed to save JSON file for \(dataType)")
-                        return
-                    }
-
-                    print("🥰 JSON file saved for \(dataType) at: \(jsonFileURL.path)")
-                    allFiles.append(jsonFileURL)
-                } catch {
-                    print("🥺 Failed to serialize JSON data for \(dataType): \(error.localizedDescription)")
-                }
-            }
-        }
-
-        // 全てのデータ取得処理が完了した後に圧縮処理
-        dispatchGroup.notify(queue: .main) {
-            print("📦 All data types fetched. Starting compression.")
-            self.compressFilesToZip(fileURLs: allFiles, zipFileName: "HealthData_\(userID).zip") { result in
-                switch result {
-                case .success(let archiveURL):
-                    print("🥰 All files compressed to: \(archiveURL.path)")
-                    completion(.success(archiveURL))
-                case .failure(let error):
-                    print("🥺 Failed to compress files: \(error.localizedDescription)")
+                    print("❌ Error saving split JSON to Firestore: \(error.localizedDescription)")
                     completion(.failure(error))
+                } else {
+                    print("✅ Split JSON successfully saved to Firestore in \(collectionName)")
+                    completion(.success(()))
                 }
             }
+        } catch {
+            completion(.failure(error))
         }
-    }*/
+    }
+
 
     func exportAndCompressHealthData(for userID: String, completion: @escaping (Result<URL, Error>) -> Void) {
         let dataTypes = ["stepCount", "activeEnergyBurned", "distanceWalkingRunning", "basalEnergyBurned"]
-        var allFiles: [URL] = [] // 保存されたファイルのURLを保持
+        var allFiles: [URL] = []
         let dispatchGroup = DispatchGroup()
-        let pageSize = 50 // 1ページあたりのドキュメント数
-
-        print("📊 Starting export for userID: \(userID)")
 
         for dataType in dataTypes {
             dispatchGroup.enter()
-            print("📊 Fetching \(dataType)")
-
-            var lastDocument: DocumentSnapshot? // 前回取得した最後のドキュメント
-            var allData: [[String: Any]] = []
+            var lastDocument: DocumentSnapshot?
 
             func fetchNextPage() {
                 var query = db.collection("users")
@@ -578,211 +597,109 @@ class FirestoreManager: ObservableObject {
                     .collection("healthData")
                     .document(dataType)
                     .collection("data")
-                    .limit(to: pageSize)
+                    .limit(to: 50)
 
                 if let lastDoc = lastDocument {
                     query = query.start(afterDocument: lastDoc)
                 }
 
-                query.getDocuments { snapshot, error in
+                query.getDocuments { [weak self] snapshot, error in
+                    guard let self = self else {
+                        dispatchGroup.leave()
+                        return
+                    }
+
                     if let error = error {
-                        print("😭 Failed to fetch documents for \(dataType): \(error.localizedDescription)")
+                        print("❌ Error fetching \(dataType): \(error.localizedDescription)")
                         dispatchGroup.leave()
                         return
                     }
 
                     guard let snapshot = snapshot else {
-                        print("😭 No documents found for \(dataType)")
                         dispatchGroup.leave()
                         return
                     }
 
-                    print("🙌 Fetched \(snapshot.documents.count) documents for \(dataType)")
-
-                    for document in snapshot.documents {
-                        allData.append(document.data())
-                    }
-
-                    if let lastDoc = snapshot.documents.last {
-                        lastDocument = lastDoc
-                        if snapshot.documents.count == pageSize {
-                            // 次のページを取得
-                            fetchNextPage()
-                            return
-                        }
-                    }
-
-                    // 全ページのデータを取得した後、JSONに保存
+                    lastDocument = snapshot.documents.last
                     do {
-                        let jsonFileName = "\(dataType)_\(userID).json"
-                        let jsonData = try JSONSerialization.data(withJSONObject: allData, options: .prettyPrinted)
-                        guard let jsonFileURL = self.saveFileToDocumentsDirectory(data: jsonData, fileName: jsonFileName) else {
-                            print("🥺 Failed to save JSON file for \(dataType)")
-                            dispatchGroup.leave()
-                            return
-                        }
+                     let fileURL = try self.saveHealthDataToJSON(documents: snapshot.documents, type: dataType, userID: userID)
+                     allFiles.append(fileURL)
+                     } catch {
+                     print("❌ Error processing \(dataType): \(error.localizedDescription)")
+                     }
 
-                        print("🥰 JSON file saved for \(dataType) at: \(jsonFileURL.path)")
-                        allFiles.append(jsonFileURL)
-                        dispatchGroup.leave()
-                    } catch {
-                        print("🥺 Failed to serialize JSON data for \(dataType): \(error.localizedDescription)")
+                    if snapshot.documents.count == 50 {
+                        fetchNextPage()
+                    } else {
                         dispatchGroup.leave()
                     }
                 }
             }
-
-            fetchNextPage() // 最初のページを取得
+            fetchNextPage()
         }
 
-        // 全てのデータ取得処理が完了した後に圧縮処理
-        dispatchGroup.notify(queue: .main) {
-            print("📦 All data types fetched. Starting compression.")
-            self.compressFilesToZip(fileURLs: allFiles, zipFileName: "HealthData_\(userID).zip") { result in
-                switch result {
-                case .success(let archiveURL):
-                    print("🥰 All files compressed to: \(archiveURL.path)")
-                    completion(.success(archiveURL))
-                case .failure(let error):
-                    print("🥺 Failed to compress files: \(error.localizedDescription)")
-                    completion(.failure(error))
-                }
-            }
+        dispatchGroup.notify(queue: .main) { [weak self] in
+            guard let self = self else { return }
+            self.compressFilesToZip(fileURLs: allFiles, zipFileName: "HealthData_\(userID).zip", completion: completion)
         }
     }
 
-
-    // JSONファイルを保存するメソッド
-    private func saveFileToDocumentsDirectory(data: Data, fileName: String) -> URL? {
-        let fileManager = FileManager.default
-        guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            print("Failed to access documents directory")
-            return nil
-        }
-        let fileURL = documentsDirectory.appendingPathComponent(fileName)
-        do {
-            try data.write(to: fileURL)
-            return fileURL
-        } catch {
-            print("Failed to save file: \(error.localizedDescription)")
-            return nil
-        }
-    }
-
-    // 複数ファイルをZIP形式で圧縮するメソッド
     private func compressFilesToZip(fileURLs: [URL], zipFileName: String, completion: @escaping (Result<URL, Error>) -> Void) {
-        do {
-            // ドキュメントディレクトリを取得
-            guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
-                throw NSError(domain: "FileError", code: 500, userInfo: [NSLocalizedDescriptionKey: "Failed to access documents directory"])
-            }
-
-            // ZIPファイルのパスを作成
-            let zipFileURL = documentsDirectory.appendingPathComponent(zipFileName)
-
-            // 既存のZIPファイルがあれば削除
-            if FileManager.default.fileExists(atPath: zipFileURL.path) {
-                try FileManager.default.removeItem(at: zipFileURL)
-            }
-
-            // ZIPアーカイブを作成
-            let zipArchive = Archive(url: zipFileURL, accessMode: .create)!
-
-            // 各ファイルを圧縮してZIPに追加
-            for fileURL in fileURLs {
-                do {
-                    // 元のファイルデータを取得
-                    let data = try Data(contentsOf: fileURL)
-
-                    // 圧縮データを作成 (zlib圧縮)
-                    let compressedData = try (data as NSData).compressed(using: .zlib)
-
-                    // 一時ファイルに圧縮データを保存
-                    let compressedFileURL = documentsDirectory.appendingPathComponent(fileURL.lastPathComponent + ".compressed")
-                    try compressedData.write(to: compressedFileURL)
-
-                    // ZIPアーカイブに追加
-                    try zipArchive.addEntry(with: fileURL.lastPathComponent, fileURL: compressedFileURL, compressionMethod: .deflate)
-
-                    // 一時ファイルを削除
-                    try FileManager.default.removeItem(at: compressedFileURL)
-                } catch {
-                    print("Failed to process file \(fileURL.lastPathComponent): \(error.localizedDescription)")
-                    throw error
-                }
-            }
-
-            print("📦 ZIP file created at: \(zipFileURL.path)")
-            completion(.success(zipFileURL))
-        } catch {
-            print("Failed to create ZIP file: \(error.localizedDescription)")
-            completion(.failure(error))
-        }
-    }
-
-
-    // 複数のファイルをZIP形式で圧縮
-    /*private func compressFiles(fileURLs: [URL], archiveFileName: String, completion: @escaping (Result<URL, Error>) -> Void) {
         guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
             completion(.failure(NSError(domain: "FileError", code: 500, userInfo: [NSLocalizedDescriptionKey: "Failed to access documents directory"])))
             return
         }
 
-        let archiveURL = documentsDirectory.appendingPathComponent(archiveFileName)
-
+        let zipFileURL = documentsDirectory.appendingPathComponent(zipFileName)
         do {
-            let archive = try FileManager.default.createDirectoryContents(atPath: archiveURL.path)
-            for fileURL in fileURLs {
-                let fileName = fileURL.lastPathComponent
-                try archive.addFile(at: fileURL, filename: fileName)
+            if FileManager.default.fileExists(atPath: zipFileURL.path) {
+                try FileManager.default.removeItem(at: zipFileURL)
             }
 
-            try archive.close()
-            completion(.success(archiveURL))
-        } catch {
-            completion(.failure(error))
-        }
-    }*/
+            /*guard let archive = Archive(url: zipFileURL, accessMode: .create) else {
+                throw NSError(domain: "ZIPError", code: 500, userInfo: [NSLocalizedDescriptionKey: "Failed to create ZIP archive"])
+            }*/
 
-    /*private func saveFileToDocumentsDirectory(data: Data, fileName: String) -> URL? {
-            let fileManager = FileManager.default
-            guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-                print("🥲📄 Failed to access documents directory")
-                return nil
-            }
-            let fileURL = documentsDirectory.appendingPathComponent(fileName)
             do {
-                try data.write(to: fileURL)
-                return fileURL
-            } catch {
-                print("🥲📁 Failed to save file: \(error.localizedDescription)")
-                return nil
-            }
-        }*/
-
-    // Fixed compression method
-       /* private func compressFile(at sourceURL: URL, fileName: String, completion: @escaping (Result<URL, Error>) -> Void) {
-            do {
-                let data = try Data(contentsOf: sourceURL)
-
-                // Use compression level
-                let compressedData = try (data as NSData).compressed(using: .zlib)
-
-                guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
-                    throw NSError(domain: "FileError", code: 500, userInfo: [NSLocalizedDescriptionKey: "Failed to access documents directory"])
+                let archive = try Archive(url: zipFileURL, accessMode: .create)
+                for fileURL in fileURLs {
+                    try archive.addEntry(with: fileURL.lastPathComponent, fileURL: fileURL)
                 }
-
-                let compressedFileURL = documentsDirectory.appendingPathComponent(fileName)
-
-                try compressedData.write(to: compressedFileURL)
-
-                completion(.success(compressedFileURL))
+                completion(.success(zipFileURL))
             } catch {
+                print("❌ Failed to create ZIP: \(error.localizedDescription)")
                 completion(.failure(error))
             }
-        }*/
-}
 
+            /*for fileURL in fileURLs {
+                try archive.addEntry(with: fileURL.lastPathComponent, fileURL: fileURL)
+            }*/
+
+            completion(.success(zipFileURL))
+        } catch {
+            print("❌ Failed to create ZIP: \(error.localizedDescription)")
+            completion(.failure(error))
+        }
+    }
+
+    // 他のユーザーのグループ、ロールを編集
+    func updateUserSettings(userID: String, groups: [String], role: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        let userRef = db.collection("users").document(userID)
+        let data: [String: Any] = [
+            "groups": groups,
+            "role": role
+        ]
+        userRef.updateData(data) { error in
+            if let error = error {
+                print("Failed to update user settings: \(error.localizedDescription)")
+                completion(.failure(error))
+            } else {
+                print("User settings updated successfully.")
+                completion(.success(()))
+            }
+        }
+    }
+}
 
 
 struct HealthDataItem: Identifiable, Equatable {
@@ -847,3 +764,38 @@ struct HealthDataItem: Identifiable, Equatable {
                lhs.date == rhs.date
     }
 }
+
+struct HealthDataEntry: Codable {
+    let type: String
+    let date: String
+    let value: Double
+
+    init(from firestoreData: [String: Any]) throws {
+        guard let type = firestoreData["type"] as? String else {
+            throw EncodingError.invalidValue("type", .init(codingPath: [], debugDescription: "Missing or invalid type"))
+        }
+
+        // 日付の処理
+        guard let dateStr = firestoreData["date"] as? String else {
+            throw EncodingError.invalidValue("date", .init(codingPath: [], debugDescription: "Missing or invalid date"))
+        }
+
+        // 値の処理
+        let value: Double
+        if let doubleValue = firestoreData["value"] as? Double {
+            value = doubleValue
+        } else if let intValue = firestoreData["value"] as? Int {
+            value = Double(intValue)
+        } else if let stringValue = firestoreData["value"] as? String,
+                  let doubleValue = Double(stringValue) {
+            value = doubleValue
+        } else {
+            throw EncodingError.invalidValue("value", .init(codingPath: [], debugDescription: "Invalid value format"))
+        }
+
+        self.type = type
+        self.date = dateStr
+        self.value = value
+    }
+}
+
