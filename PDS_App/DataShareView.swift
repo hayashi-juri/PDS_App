@@ -45,7 +45,7 @@ struct DataShareView: View {
             Text("Data Sharing")
                 .font(.title)
                 .padding()
-            
+
             Button("Export My Data") {
                 isShowingExportView = true
             }
