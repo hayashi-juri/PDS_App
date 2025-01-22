@@ -22,6 +22,7 @@ struct DataShareView: View {
     @State private var selectedGroupPublisher = PassthroughSubject<String, Never>()
     // デバウンス処理用のキャンセラ
     @State private var cancellables: Set<AnyCancellable> = []
+    @State private var isShowingExportView = false
 
     let groupOptions: [String] = ["Family", "Friends", "Public"] // グループオプション
 
@@ -44,6 +45,14 @@ struct DataShareView: View {
             Text("Data Sharing")
                 .font(.title)
                 .padding()
+            
+            Button("Export My Data") {
+                isShowingExportView = true
+            }
+            .padding()
+            .sheet(isPresented: $isShowingExportView) {
+                ExportHealthDataView(firestoreManager: firestoreManager, userID: userID)
+            }
 
             // グループ選択
             Picker("Select Group", selection: $selectedGroup) {
@@ -56,7 +65,7 @@ struct DataShareView: View {
             /*.onReceive(Just(selectedGroup)) { _ in
              fetchData()
              }*/
-            .onChange(of: selectedGroup) { newValue in
+            .onChange(of: selectedGroup) { oldValue, newValue in
                 selectedGroupPublisher.send(newValue)
             }
 
