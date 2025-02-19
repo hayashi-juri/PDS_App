@@ -1,3 +1,6 @@
 Demo
-https://github.com/user-attachments/assets/41833747-6b11-45d9-b9a6-4b1e4dc1e999
+
+Login and HealthKit Autorization
+
+https://github.com/user-attachments/assets/efc5852f-f436-4f70-9522-9cb6c2a1856c
 
